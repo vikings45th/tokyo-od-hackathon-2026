@@ -1,0 +1,29 @@
+# 秘密情報 — 絶対にコミットしない
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+.dev.vars
+
+# 依存関係
+node_modules/
+
+# ビルド成果物
+dist/
+build/
+.wrangler/
+.output/
+
+# エディタ・OS
+.DS_Store
+.vscode/
+.idea/
+*.swp
+
+# Claude Code のローカル設定（.claude/settings.json は共有するのでコミットする）
+.claude/settings.local.json
+
+# ログ
+*.log
+npm-debug.log*
