@@ -109,6 +109,38 @@ done
 `403` でも「サーバーまで届いてサーバーが答えた」という意味なので成功です。
 遮断されている場合は TLS トンネルが張れず、ステータスコード自体が返りません。
 
+#### 実測結果（2026-08-20・クラウドセッションから）
+
+**Custom 設定なしのクラウドセッションで、すでに全部通りました。**
+
+| ホスト | コード | 備考 |
+|---|---|---|
+| `catalog.data.metro.tokyo.lg.jp` | 403 | トップHTMLはAWS WAFが弾く。**`/api/3/action/*` は200** |
+| `portal.data.metro.tokyo.lg.jp` | 200 | ポータル本体のHTMLが返る |
+| `www.opendata.metro.tokyo.lg.jp` | 200 | **CSV実データのDL成功**（CC BY） |
+| `spec.api.metro.tokyo.lg.jp` | 200 | |
+| `odhackathon.metro.tokyo.lg.jp` | 200 | 大会公式 |
+| `odh-tokyo2026.code4japan.org` | 200 | |
+| `api.cloudflare.com` | 301 / 400 | 到達。400は「Authorizationヘッダが無い」というCloudflare自身の応答 |
+| `api.github.com` | 200 | |
+| npm / PyPI | 200 | proxyの `noProxy` に入っていて直結 |
+
+つまり**この環境では東京都のデータを直接叩けます**。CKAN API は素の
+`curl` のUA（`curl/8.x`）でも200が返るので、UA偽装は不要です。
+カタログの**トップHTMLだけ**が WAF に弾かれるので、ブラウザUAを付けるか、
+そもそもAPIを使ってください。
+
+**ただし環境設定はアカウントごとです。** 上の表は「このリポジトリで
+セッションを立てたらこうなる」という保証ではありません。3人それぞれが
+自分のセッションで上のスクリプトを走らせて確認してください。
+`000` が出た人は下の 1-1 の手順で Custom 許可リストを設定します。
+
+**例外1つ**：`https://github.com/`（Web UI のHTML）は
+agent proxy 自身が `400 Request path could not be canonicalized.` を返します。
+`git clone` / `git push` / `api.github.com` / GitHub MCP はすべて正常なので、
+実作業に影響はありません。GitHubのページを読みたいときは
+`api.github.com` か GitHub MCP ツールを使ってください。
+
 ### 1-2. リポジトリをクローンする
 
 ```bash
