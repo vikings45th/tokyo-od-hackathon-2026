@@ -61,6 +61,7 @@ Claude Code のクラウドセッションは既定で GitHub とパッケージ
 | [`docs/05-tech.md`](docs/05-tech.md) | 技術方針 |
 | [`docs/06-open-questions.md`](docs/06-open-questions.md) | 一次情報で確認すべき未確認事項 |
 | [`docs/07-team-workflow.md`](docs/07-team-workflow.md) | 環境セットアップと3人運用ルール |
+| [`docs/08-themes.md`](docs/08-themes.md) | 東京都提示テーマ全一覧（12カテゴリ・57件） |
 
 ---
 
