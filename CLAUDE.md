@@ -151,7 +151,7 @@ src/           アプリケーション本体（構成は docs/05-tech.md で決
 | `docs/01-event.md` | 大会情報（審査基準・賞・日程・提出物） |
 | `docs/02-todo.md` | 8/17→8/30 の逆算タスクリスト |
 | `docs/03-data.md` | データソース調査（カタログ・API・ライセンス） |
-| `docs/04-ideas.md` | アイデア出しのベースと評価マトリクス |
+| `docs/04-ideas.md` | アイデア出しと意思決定（有力3方向・評価マトリクス） |
 | `docs/05-tech.md` | 技術方針 |
 | `docs/06-open-questions.md` | 一次情報で確認すべき未確認事項 |
 | `docs/07-team-workflow.md` | 環境セットアップと3人運用ルール |
