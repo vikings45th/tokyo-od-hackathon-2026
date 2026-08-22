@@ -33,3 +33,10 @@ npm-debug.log*
 data/raw/
 # 学童クラブ名簿はオープンデータカタログ未掲載＝転載不可。ライセンス確認が済むまで除外
 data/processed/gakudou_clubs_*.csv
+# 福祉局サイトの元データ。data/raw/ ではなく data/ 直下に置かれた分も転載不可なので除外
+# （d2b600c で誤ってコミットされていた。ファイル自体はローカルに残す）
+data/*.pdf
+data/20251001.csv
+
+# 別リポジトリ（startup/.git を持つ）。ここで追跡すると壊れた gitlink になる（docs/17 依頼C）
+startup/
