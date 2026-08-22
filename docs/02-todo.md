@@ -45,6 +45,21 @@
 - [ ] `data/SOURCES.md` を最終確定（**ライセンスをAPIで再確認**）
 - [ ] **出荷オーナー**：提出フォーム①〜⑥
 
+#### 🔴 ③から②への依頼（`docs/16-ui-detail-design.md` §0）
+
+③が地図コロプレス＋HeroUI で作るため、**②の所有ファイルに1回だけセットアップが要ります。**
+**これが済んだ時点で③は分岐でき、以後の衝突はゼロになります。**
+
+- [ ] `package.json`：**React 19 / react-dom / @heroui/react / tailwindcss 4 / d3-geo / topojson-client** を追加
+- [ ] `vite.config.ts`：**Tailwind 4 の Vite プラグイン**を追加
+- [ ] `index.html`：**React のルート要素**を用意
+- [ ] `docs/05-tech.md` の技術選定表（「素のTypeScript／素のCSS」）を更新
+
+> ②の実装には影響しません。`src/core/` は `AppData` を受けて `Heatmap`/`MuniDetail` を返す
+> 純粋な関数群で、**型の契約は1文字も変わりません**。
+> ライセンスは全て許容的（MIT / Apache-2.0 / ISC）で**コピーレフトはありません**。
+> Apache-2.0 の NOTICE 対応として、ビルド時に `LICENSES.txt` を `dist/` に出します。
+
 #### ② ロジック/AI担当
 
 - [ ] Vite ＋ TypeScript 雛形（`npx wrangler pages dev` が立ち上がるまで）
@@ -64,6 +79,9 @@
 - [ ] **注記の出し分け**（制度が別枠／本物の不足／母数不足）＋**別枠表示**
 - [ ] **打てる手**のセクション
 - [ ] 🔴 **出典・ライセンス・取得日を画面に出す**（絶対に捨てない提出要件）
+- [ ] 地図コロプレス（`data/geo/tokyo-49.topo.json` は生成済み・31.3KB）
+- [ ] ランキングリスト（**面積バイアスの補正役**）
+- [ ] `bridged` 区間の斜線テクスチャ（**予測の確からしさの違いを示す**）
 - [ ] 🔴 **`/api/scenario` が落ちてもヒートマップが表示され続ける**こと
 - [ ] **出荷オーナー**：スライド・キャプチャ・動画台本
 
