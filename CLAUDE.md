@@ -170,16 +170,28 @@ Cloudflare API も通りません。
 クラウドセッションのVMは**放置すると回収されます**。
 手元に残したいものは必ずプッシュしてください。
 
-### ブランチは作らない
+### ブランチ運用
 
-**残り1.5日なので、全員 `main` に直接コミット＆push します。レビューは挟みません。**
-衝突は**ディレクトリ縦割り**（`docs/10-roles-schedule.md` §1）で防ぎます。
+**1人1本の作業ブランチ `work/<自分の名前>` を使い回します。**（作業単位ごとには切りません）
+**レビューは挟みません。** 衝突は**ディレクトリ縦割り**（`docs/10-roles-schedule.md` §1）で防ぎます。
 
-- 各自1回だけ：`git config pull.rebase true && git config rebase.autoStash true && git config alias.sync '!git pull --rebase && git push'`
-- 以降の作業ループ：`git add -A && git commit -m "..." && git sync`
-- **クラウドセッションだけ例外。** 自動生成される `claude/*` ブランチは、
-  **その日のうちに自分で `main` にマージ**する（PRを作って自分でMergeを押すだけ。承認待ちはしない）
-- 動いた瞬間に `git tag`（`day1-1700` など）。壊れたら `git checkout <tag> -- <パス>` で戻す
+- 各自1回だけ：
+  ```bash
+  git config merge.autoStash true && git config rebase.autoStash true
+  git config push.default current
+  git config alias.catchup '!git fetch origin main && git merge origin/main'
+  git switch -c work/<自分の名前>
+  ```
+- 作業ループ：`git catchup` → `git add -A && git commit -m "..."` → `git push`
+  → push 時に出る URL から PR を作り、**自分で即 Merge**（承認待ちはしない）
+- ⛔ **マージは必ず「Create a merge commit」。「Squash and merge」は使わない**
+  — squash するとマージ済みの変更が「未マージ」扱いで残り、次の `catchup` で蘇って衝突します
+- ⛔ **「Delete branch」を押さない**（使い回すため）。マージ後は必ず `git catchup`
+- **1日3回（15:00 / 17:00 / 20:00）は必ず `main` へマージ。** 溜めると 8/23 に詰みます
+- クラウドセッションの `claude/*` も手順は同じ。ただし**使い捨て**なので
+  Delete branch も Squash も可。**その日のうちに `main` へ**
+- 動いた瞬間に `main` の上で `git tag`（`day1-1700` など）。
+  壊れたら `git checkout <tag> -- <パス>` で戻す
 - **`git push --force` は禁止。** 3人が `main` を共有しているので他2人の作業が消えます
 
 詳細は `docs/07-team-workflow.md` §3-2。
