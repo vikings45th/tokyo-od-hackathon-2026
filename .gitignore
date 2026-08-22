@@ -33,3 +33,6 @@ npm-debug.log*
 data/raw/
 # 学童クラブ名簿はオープンデータカタログ未掲載＝転載不可。ライセンス確認が済むまで除外
 data/processed/gakudou_clubs_*.csv
+
+# ③の作業用（スクリーンショット等）。コミットしない
+/scratch/
