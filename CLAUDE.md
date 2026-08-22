@@ -170,6 +170,20 @@ Cloudflare API も通りません。
 クラウドセッションのVMは**放置すると回収されます**。
 手元に残したいものは必ずプッシュしてください。
 
+### ブランチは作らない
+
+**残り1.5日なので、全員 `main` に直接コミット＆push します。レビューは挟みません。**
+衝突は**ディレクトリ縦割り**（`docs/10-roles-schedule.md` §1）で防ぎます。
+
+- 各自1回だけ：`git config pull.rebase true && git config rebase.autoStash true && git config alias.sync '!git pull --rebase && git push'`
+- 以降の作業ループ：`git add -A && git commit -m "..." && git sync`
+- **クラウドセッションだけ例外。** 自動生成される `claude/*` ブランチは、
+  **その日のうちに自分で `main` にマージ**する（PRを作って自分でMergeを押すだけ。承認待ちはしない）
+- 動いた瞬間に `git tag`（`day1-1700` など）。壊れたら `git checkout <tag> -- <パス>` で戻す
+- **`git push --force` は禁止。** 3人が `main` を共有しているので他2人の作業が消えます
+
+詳細は `docs/07-team-workflow.md` §3-2。
+
 ### レート制限はアカウント全体で共有
 
 並列セッションを増やすとその分消費が早くなります。

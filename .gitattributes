@@ -1,0 +1,5 @@
+# 3人が同時に追記するファイルは衝突させない（両方の行を残す）
+# union merge は両側の変更を残すので、まれに重複行が出ます。見つけたら消すだけです。
+# rebase 中にコンフリクトを解くより圧倒的に速いのでこうしています。
+docs/11-ai-log.md merge=union
+docs/02-todo.md   merge=union
