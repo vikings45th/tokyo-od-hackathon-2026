@@ -1,0 +1,51 @@
+[
+ {
+  "name": "学童クラブ事業の区市町村別実施状況",
+  "provider": "東京都福祉局",
+  "license": "CC BY 4.0",
+  "url": "https://catalog.data.metro.tokyo.lg.jp/dataset/t000054d0000000344",
+  "retrievedAt": "2026-08-22"
+ },
+ {
+  "name": "教育人口等推計（令和7年度）",
+  "provider": "東京都教育庁",
+  "license": "CC BY 4.0",
+  "url": "https://catalog.data.metro.tokyo.lg.jp/dataset/t000021d2000000193",
+  "retrievedAt": "2026-08-22"
+ },
+ {
+  "name": "教育人口等推計（令和6年度）",
+  "provider": "東京都教育庁",
+  "license": "CC BY 4.0",
+  "url": "https://catalog.data.metro.tokyo.lg.jp/dataset/t000021d2000000189",
+  "retrievedAt": "2026-08-22"
+ },
+ {
+  "name": "教育人口等推計（令和5年度）",
+  "provider": "東京都教育庁",
+  "license": "CC BY 4.0",
+  "url": "https://catalog.data.metro.tokyo.lg.jp/dataset/t000021d2000000178",
+  "retrievedAt": "2026-08-22"
+ },
+ {
+  "name": "公立学校統計調査報告書【東京都公立学校一覧】（令和7年度）",
+  "provider": "東京都教育庁",
+  "license": "CC BY 4.0",
+  "url": "https://catalog.data.metro.tokyo.lg.jp/dataset/t000021d2000000191",
+  "retrievedAt": "2026-08-22"
+ },
+ {
+  "name": "公立学校統計調査報告書【東京都公立学校一覧】（令和6年度）",
+  "provider": "東京都教育庁",
+  "license": "CC BY 4.0",
+  "url": "https://catalog.data.metro.tokyo.lg.jp/dataset/t000021d2000000186",
+  "retrievedAt": "2026-08-22"
+ },
+ {
+  "name": "公立学校統計調査報告書【東京都公立学校一覧】（令和5年度）",
+  "provider": "東京都教育庁",
+  "license": "CC BY 4.0",
+  "url": "https://catalog.data.metro.tokyo.lg.jp/dataset/t000021d2000000176",
+  "retrievedAt": "2026-08-22"
+ }
+]

@@ -3,12 +3,18 @@
 入力: data/raw/*.csv（東京都福祉局「学童クラブ」関連）
 出力: data/processed/*.csv（UTF-8 / BOMなし / LF / ヘッダは英語スネークケース）
 
+build_stats() は scripts/plans/gakudo_stats.json（生成AI①が作った抽出プラン）を
+決定論的に実行する。プランの作り方・なぜAIが必要かは docs/14-basic-design.md §7、
+docs/11-ai-log.md 参照。LLMはプラン（列位置・数値クリーニング規則）だけを作り、
+値そのものには一切触れない。
+
 使い方: python scripts/build_processed.py （リポジトリルートで実行）
 """
-import csv, io, os, re
+import csv, io, json, os, re
 
 RAW = "data/raw"
 OUT = "data/processed"
+PLANS = "scripts/plans"
 
 # 東京都62区市町村の全国地方公共団体コード（5桁）。
 # 「行政」欄の通し番号(1-62)をキーにする。CSV側の並びと一致。
@@ -90,28 +96,60 @@ def build_clubs():
                "club_name", "postal_code", "address"], out)
 
 
+def load_plan(name):
+    with open(os.path.join(PLANS, name), encoding="utf-8") as f:
+        return json.load(f)
+
+
+def clean_number(raw, rules):
+    """プランの numberCleaning を順に適用する。isdigitでなければ None（欠測扱い）。"""
+    v = raw
+    for rule in rules:
+        if rule == "strip":
+            v = v.strip()
+        elif rule == "removeComma":
+            v = v.replace(",", "")
+        elif rule == "emptyOrDashToNull":
+            if v in ("", "-"):
+                return None
+        else:
+            raise ValueError(f"unknown numberCleaning rule: {rule}")
+    return int(v) if v.isdigit() else None
+
+
+def apply_plan(rows, plan):
+    """抽出プラン（scripts/plans/*.json）を決定論的に実行し、
+    (muni_name, clubs, registered, waiting) のリストを返す。"""
+    cols = plan["columns"]
+    out = []
+    for r in rows:
+        for block in plan["blocks"]:
+            base = block["colStart"]
+            idx = {k: base + off for k, off in cols.items()}
+            if len(r) <= max(idx.values()):
+                continue
+            name = r[idx["muni"]].strip()
+            if name not in CODE_BY_NAME:
+                continue  # 「区計」「市町村計」「総計」や空行を除外（プランの rowFilter）
+            nums = {k: clean_number(r[idx[k]], plan["numberCleaning"])
+                    for k in ("clubs", "registered", "waiting")}
+            if any(v is None for v in nums.values()):
+                continue
+            out.append((name, nums["clubs"], nums["registered"], nums["waiting"]))
+    return out
+
+
 def build_stats():
     """クラブ数・登録児童数・待機児童数を、時点×区市町村のlong形式にまとめる"""
     sources = [("r50501gakudoujoukyou.csv", "2023-05-01"),
                ("20250501.csv", "2025-05-01"),
                ("20251001.csv", "2025-10-01")]
+    plan = load_plan("gakudo_stats.json")
     out = []
     for fname, as_of in sources:
         rows = read_csv(fname)
-        for r in rows:
-            # 左ブロック(区部): col1..4 / 右ブロック(市町村部): col7..10
-            for name_i, club_i in ((1, 2), (7, 8)):
-                if len(r) <= club_i + 2:
-                    continue
-                name = r[name_i].strip()
-                if name not in CODE_BY_NAME:
-                    continue      # 「区計」「市町村計」「総計」や空行を除外
-                nums = [norm(r[club_i]).replace(",", ""),
-                        norm(r[club_i + 1]).replace(",", ""),
-                        norm(r[club_i + 2]).replace(",", "")]
-                if not all(n.isdigit() for n in nums):
-                    continue
-                out.append([as_of, CODE_BY_NAME[name], name, *map(int, nums)])
+        for name, clubs, registered, waiting in apply_plan(rows, plan):
+            out.append([as_of, CODE_BY_NAME[name], name, clubs, registered, waiting])
     out.sort(key=lambda x: (x[0], x[1]))
     write_csv("gakudou_stats_by_municipality.csv",
               ["as_of", "muni_code", "muni_name",

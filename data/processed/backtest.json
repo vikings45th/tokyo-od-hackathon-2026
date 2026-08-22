@@ -1,0 +1,18 @@
+[
+ {
+  "horizon": 1,
+  "meanPct": 0.18,
+  "maePct": 0.93,
+  "p10Pct": -1.47,
+  "p90Pct": 1.41,
+  "n": 49
+ },
+ {
+  "horizon": 2,
+  "meanPct": 0.17,
+  "maePct": 1.37,
+  "p10Pct": -2.07,
+  "p90Pct": 1.94,
+  "n": 49
+ }
+]
