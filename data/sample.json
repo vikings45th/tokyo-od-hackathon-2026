@@ -98,16 +98,31 @@
      "count": 1914
     }
    ],
-   "baseChildren": 8796,
-   "gakudo": {
-    "clubs": 15,
-    "registered": 774,
-    "waiting": 257,
-    "asOf": "2023-05-01"
-   },
+   "baseChildren": 9618,
+   "children2023": 8796,
+   "gakudo": [
+    {
+     "asOf": "2023-05-01",
+     "clubs": 15,
+     "registered": 774,
+     "waiting": 257
+    },
+    {
+     "asOf": "2025-05-01",
+     "clubs": 31,
+     "registered": 1291,
+     "waiting": 275
+    },
+    {
+     "asOf": "2025-10-01",
+     "clubs": 31,
+     "registered": 1284,
+     "waiting": 201
+    }
+   ],
    "note": {
     "kind": "real-shortage",
-    "text": "登録率は都内最低水準（0.088）ですが、待機児童が257人おり、需要が無いのではなく受け皿が足りていません。"
+    "text": "顕在需要率は都内最低水準（0.163）ですが、待機児童が275人おり、需要が無いのではなく受け皿が足りていません。待機児童数を登録児童数で割ると17.6%で都内最大です。"
    }
   },
   {
@@ -208,13 +223,28 @@
      "count": 3164
     }
    ],
-   "baseChildren": 22321,
-   "gakudo": {
-    "clubs": 57,
-    "registered": 5907,
-    "waiting": 257,
-    "asOf": "2023-05-01"
-   }
+   "baseChildren": 22620,
+   "children2023": 22321,
+   "gakudo": [
+    {
+     "asOf": "2023-05-01",
+     "clubs": 57,
+     "registered": 5907,
+     "waiting": 257
+    },
+    {
+     "asOf": "2025-05-01",
+     "clubs": 59,
+     "registered": 6301,
+     "waiting": 481
+    },
+    {
+     "asOf": "2025-10-01",
+     "clubs": 59,
+     "registered": 6107,
+     "waiting": 68
+    }
+   ]
   },
   {
    "code": "13112",
@@ -314,13 +344,28 @@
      "count": 5407
     }
    ],
-   "baseChildren": 38302,
-   "gakudo": {
-    "clubs": 63,
-    "registered": 9210,
-    "waiting": 0,
-    "asOf": "2023-05-01"
-   }
+   "baseChildren": 37503,
+   "children2023": 38302,
+   "gakudo": [
+    {
+     "asOf": "2023-05-01",
+     "clubs": 63,
+     "registered": 9210,
+     "waiting": 0
+    },
+    {
+     "asOf": "2025-05-01",
+     "clubs": 73,
+     "registered": 9577,
+     "waiting": 0
+    },
+    {
+     "asOf": "2025-10-01",
+     "clubs": 73,
+     "registered": 9268,
+     "waiting": 0
+    }
+   ]
   },
   {
    "code": "13109",
@@ -420,13 +465,28 @@
      "count": 2569
     }
    ],
-   "baseChildren": 14178,
-   "gakudo": {
-    "clubs": 37,
-    "registered": 2979,
-    "waiting": 0,
-    "asOf": "2023-05-01"
-   }
+   "baseChildren": 14417,
+   "children2023": 14178,
+   "gakudo": [
+    {
+     "asOf": "2023-05-01",
+     "clubs": 37,
+     "registered": 2979,
+     "waiting": 0
+    },
+    {
+     "asOf": "2025-05-01",
+     "clubs": 37,
+     "registered": 3484,
+     "waiting": 0
+    },
+    {
+     "asOf": "2025-10-01",
+     "clubs": 37,
+     "registered": 3318,
+     "waiting": 0
+    }
+   ]
   },
   {
    "code": "13123",
@@ -526,16 +586,31 @@
      "count": 3644
     }
    ],
-   "baseChildren": 32637,
-   "gakudo": {
-    "clubs": 4,
-    "registered": 141,
-    "waiting": 0,
-    "asOf": "2023-05-01"
-   },
+   "baseChildren": 31226,
+   "children2023": 32637,
+   "gakudo": [
+    {
+     "asOf": "2023-05-01",
+     "clubs": 4,
+     "registered": 141,
+     "waiting": 0
+    },
+    {
+     "asOf": "2025-05-01",
+     "clubs": 72,
+     "registered": 6623,
+     "waiting": 0
+    },
+    {
+     "asOf": "2025-10-01",
+     "clubs": 72,
+     "registered": 6062,
+     "waiting": 0
+    }
+   ],
    "note": {
-    "kind": "system-difference",
-    "text": "江戸川区は全児童を対象とする独自事業を実施しており、学童クラブの登録児童数（141人・4か所）が他区と同じ意味を持ちません。比較対象から外しています。"
+    "kind": "series-break",
+    "text": "2023年5月時点の集計（4か所・141人）と2025年5月時点（72か所・6,623人）で計上方法が大きく変わっています。2025年時点の値は他区と同水準（顕在需要率0.212）なのでスコア計算には含めますが、登録率トレンドの算出からは除外しています。"
    }
   },
   {
@@ -636,13 +711,28 @@
      "count": 1145
     }
    ],
-   "baseChildren": 9478,
-   "gakudo": {
-    "clubs": 34,
-    "registered": 2289,
-    "waiting": 0,
-    "asOf": "2023-05-01"
-   }
+   "baseChildren": 9373,
+   "children2023": 9478,
+   "gakudo": [
+    {
+     "asOf": "2023-05-01",
+     "clubs": 34,
+     "registered": 2289,
+     "waiting": 0
+    },
+    {
+     "asOf": "2025-05-01",
+     "clubs": 35,
+     "registered": 2435,
+     "waiting": 0
+    },
+    {
+     "asOf": "2025-10-01",
+     "clubs": 35,
+     "registered": 2334,
+     "waiting": 0
+    }
+   ]
   }
  ],
  "schools": [
@@ -1361,6 +1451,13 @@
  ],
  "sources": [
   {
+   "name": "学童クラブ事業の区市町村別実施状況",
+   "provider": "東京都福祉局",
+   "license": "CC BY 4.0",
+   "url": "https://catalog.data.metro.tokyo.lg.jp/dataset/t000054d0000000344",
+   "retrievedAt": "2026-08-22"
+  },
+  {
    "name": "教育人口等推計（令和7年度）",
    "provider": "東京都教育庁",
    "license": "CC BY 4.0",
@@ -1372,13 +1469,6 @@
    "provider": "東京都教育庁",
    "license": "CC BY 4.0",
    "url": "https://catalog.data.metro.tokyo.lg.jp/dataset/t000021d2000000191",
-   "retrievedAt": "2026-08-22"
-  },
-  {
-   "name": "学童クラブ事業の区市町村別実施状況",
-   "provider": "東京都福祉局",
-   "license": "CC BY 4.0",
-   "url": "https://catalog.data.metro.tokyo.lg.jp/dataset/t000054d0000000344",
    "retrievedAt": "2026-08-22"
   }
  ]
