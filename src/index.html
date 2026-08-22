@@ -8,6 +8,31 @@
 </head>
 <body>
 <div id="root"></div>
+<!--
+  JavaScript が無効でも、作品の主張と出典だけは読めるようにしておく。
+  🔴 出典・ライセンス表記は大会ルールの提出要件（要件 FR-8）なので、
+     描画に失敗しても消えない場所に置いておくこと。
+  ⚠️ 数値は出さない。②の予測エンジンを実行しないと出せないため、
+     ここに固定値を書くと嘘になる。
+-->
+<noscript>
+  <div style="max-width:44em;margin:0 auto;padding:64px 24px;font-family:system-ui,'Hiragino Sans','Noto Sans JP',sans-serif;line-height:1.8">
+    <h1 style="font-size:32px;letter-spacing:-.03em;line-height:1.3">保育園には、入れた。でも、小1で詰んだ。</h1>
+    <p>子が小1になる年度に、その自治体で学童の受け皿がどれくらい足りないかを、
+       東京都の公式推計から予測して地図に出すサービスです。</p>
+    <p><strong>このページは JavaScript を有効にすると動きます。</strong>
+       予測は都のオープンデータを使ってブラウザの中で計算しています（サーバーに送信するデータはありません）。</p>
+    <h2 style="font-size:15px;margin-top:36px">出典</h2>
+    <p style="font-size:13px;color:#52514e">
+      東京都オープンデータカタログサイト「教育人口等推計」（東京都教育庁）／
+      「公立学校統計調査報告書【東京都公立学校一覧】」（東京都教育庁）／
+      「学童クラブ事業の区市町村別実施状況」（東京都福祉局）　いずれも
+      クリエイティブ・コモンズ 表示 4.0（CC BY 4.0）。<br>
+      地図：「国土数値情報（行政区域データ）」（国土交通省）を加工して作成。<br>
+      本サービスは上記データを加工して作成しています。
+    </p>
+  </div>
+</noscript>
 <script type="module" src="./ui/main.tsx"></script>
 </body>
 </html>

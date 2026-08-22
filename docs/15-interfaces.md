@@ -11,6 +11,31 @@
 
 ---
 
+## 🔴 実装後の実態（2026-08-22 追記・ここが最新）
+
+②が `src/core/` を実装し、③が `src/ui/` を実装した結果、
+**§3「境界B」は下の3点で実際と違います。** 実装のほうが正です。
+
+| このドキュメントの記述 | 実際 | なぜ |
+|---|---|---|
+| ③は `buildHeatmap` / `buildMuniDetail` を呼ぶ | ③は **`computeAll(data, scenario)` を1回だけ**呼び、`CoreResult` から描く | `CoreCell.detail` に `demand`/`supply`/`gap`/`rTarget`/`children` があり、`byMuni: Map` で O(1) 参照できる。地図ホバーのたびに再計算しなくて済む |
+| `Heatmap.bins`（色の5段ビン）は②が返す | **③が固定値で持つ**（`src/ui/palette.ts` の `BINS = [0,3,8,15,30]`） | 実測分布で数え直したところ、契約に書いた `[0,10,25,40,60]` では上位2色がほぼ使われず地図が単色になる。分位ではなく固定値なので「色の意味が動く」問題は起きない |
+| `MuniDetail.alternatives` は③が `topojson.neighbors()` で作る | **そのとおり。②の実装（同じ area 区分）は使わない** | ②の「近隣＝23区／多摩26市」だと中央区の近隣に世田谷区が並ぶ。実測で `topojson.neighbors()` は 中央区→千代田/港/台東/墨田/江東、世田谷区→三鷹市/調布市/狛江市 を返す |
+
+さらに2点：
+
+- **`HeatmapCell` の `demand`/`supply`/`gap`、`cells` の添字順序保証、`DefaultScenario`、`EntryYearOf`
+  は `src/types.ts` から削除されました。** 上記のとおり不要になったためです
+- **§4「境界C（`/api/scenario`）」は v1 では作りません。** ②は `PRESET_SCENARIOS` 5件に
+  置き換えました。判断と理由は `docs/14-basic-design.md` §7 と `docs/05-tech.md`
+
+**②に出している変更依頼は `docs/17-setup-request.md`（2件）です。**
+うち `entryYearOf(birthYear, birthMonth?)`（早生まれ）は blocking で、
+入るまで③は `src/ui/entryYear.ts` の暫定ラッパーで動かしています
+（②が対応したかを実行時に検知して、対応済みなら core を直接呼ぶ）。
+
+---
+
 ## 0. ⚠️ 型を変えたくなったら
 
 **勝手に変えないでください。3人全員の手が止まります。**
