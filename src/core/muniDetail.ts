@@ -69,7 +69,12 @@ export function muniDetailFrom(
       supply: r.detail.supply ?? 0,
       gap: r.detail.gap ?? 0,
       targetRate: r.detail.rTarget ?? 0,
+      // 🔴 band は児童数の帯。需要の帯は demandBand（③の申し送り・docs/17 依頼B）
       band: r.projection!.band,
+      demandBand: {
+        lo: r.projection!.band.lo * (r.detail.rTarget ?? 0),
+        hi: r.projection!.band.hi * (r.detail.rTarget ?? 0),
+      },
     }));
 
   const note = core.notes.get(muni);

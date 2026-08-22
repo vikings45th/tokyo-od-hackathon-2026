@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { appData, scoreAt } from './fixtures';
 import {
+  birthYearOf,
   buildHeatmap,
   buildMuniDetail,
   computeAll,
   entryYearOf,
+  isEarlyBirth,
   latentFloorFromData,
   measureTrend,
   normalizeScenario,
@@ -20,6 +22,44 @@ const muniByName = (name: string) => appData.munis.find((m) => m.name === name)!
 describe('FR-1 入学年度', () => {
   it('2024年生まれは2031年度に小1（要件 §5 UC-1）', () => {
     expect(entryYearOf(2024)).toBe(2031);
+  });
+
+  // 学校教育法：4月2日〜翌年4月1日生まれが同学年。早生まれは全体の約1/4
+  it.each([
+    [2024, 4, 2031],
+    [2025, 3, 2031],
+    [2025, 4, 2032],
+    [2024, 1, 2030],
+    [2024, 12, 2031],
+  ])('%i年%i月生まれ → %i年度', (y, m, expected) => {
+    expect(entryYearOf(y, m)).toBe(expected);
+  });
+
+  it('第2引数を渡さなければ従来どおり +7', () => {
+    expect(entryYearOf(2024)).toBe(2031);
+    expect(entryYearOf(2025)).toBe(2032);
+  });
+
+  it('範囲外・非整数の月は通常の学年として扱う', () => {
+    expect(entryYearOf(2025, 0)).toBe(2032);
+    expect(entryYearOf(2025, 13)).toBe(2032);
+    expect(entryYearOf(2025, 3.5)).toBe(2032);
+    expect(entryYearOf(2025, NaN)).toBe(2032);
+  });
+
+  it('isEarlyBirth は1〜3月だけ true', () => {
+    expect([1, 2, 3].map(isEarlyBirth)).toEqual([true, true, true]);
+    expect([4, 5, 12].map(isEarlyBirth)).toEqual([false, false, false]);
+    expect(isEarlyBirth(undefined)).toBe(false);
+  });
+
+  it('birthYearOf は entryYearOf の逆（月を渡せば往復する）', () => {
+    for (const m of [1, 3, 4, 12, undefined]) {
+      const b = birthYearOf(2031, m);
+      expect(entryYearOf(b, m)).toBe(2031);
+    }
+    expect(birthYearOf(2031, 3)).toBe(2025);
+    expect(birthYearOf(2031, 4)).toBe(2024);
   });
 });
 
@@ -172,6 +212,24 @@ describe('予測区間', () => {
   it('bridged 区間でさらに広がる（測っていない区間だと示す）', () => {
     const rel = (y: number) => width(y) / row(y).demand;
     expect(rel(2031)).toBeGreaterThan(rel(2030) * 1.4);
+  });
+
+  // docs/17 依頼B：band は児童数の帯。需要の帯は demandBand
+  it('demandBand は band × targetRate で、demand を挟む', () => {
+    for (const r of detail.series) {
+      expect(r.demandBand.lo).toBeCloseTo(r.band.lo * r.targetRate, 9);
+      expect(r.demandBand.hi).toBeCloseTo(r.band.hi * r.targetRate, 9);
+      expect(r.demand).toBeGreaterThanOrEqual(r.demandBand.lo);
+      expect(r.demand).toBeLessThanOrEqual(r.demandBand.hi);
+    }
+  });
+
+  it('band と demandBand は桁が違う（同じ軸に描かせないための回帰テスト）', () => {
+    const r = buildMuniDetail(appData, '中央区').series.find((s) => s.year === 2031)!;
+    expect(r.demand).toBeCloseTo(2189.8, 0);
+    expect(r.band.lo).toBeCloseTo(9701.8, 0);
+    expect(r.demandBand.lo).toBeCloseTo(r.band.lo * r.targetRate, 9);
+    expect(r.band.lo / r.demandBand.lo).toBeGreaterThan(4);
   });
 });
 

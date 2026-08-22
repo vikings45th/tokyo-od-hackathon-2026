@@ -8,7 +8,7 @@
 // ── 境界Bの3本（docs/15-interfaces.md §3 で3人合意済み） ──
 export { buildHeatmap, heatmapFrom } from './heatmap';
 export { buildMuniDetail, muniDetailFrom } from './muniDetail';
-export { entryYearOf, birthYearOf, entryYearRange, lastForecastYear, isInRange } from './entryYear';
+export { entryYearOf, birthYearOf, entryAgeOffset, isEarlyBirth, entryYearRange, lastForecastYear, isInRange } from './entryYear';
 
 // ── 画面に「根拠」を出すために③が使うもの ──
 export { measureTrend, latentFloorFromData, type TrendMeasurement } from './trend';

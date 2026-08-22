@@ -269,7 +269,17 @@ export interface MuniDetail {
     gap: number;
     /** 登録率（目標） */
     targetRate: number;
+    /**
+     * 🔴 **これは全学年児童数 N(m,y) の予測区間であって、需要の帯ではない。**
+     * `demand` とは桁が違う（実測：中央区2031年度は demand 2,189.8 に対し 9,701.8〜10,966.5）。
+     * 同じ軸に描くと事故る。需要の帯が欲しいときは下の `demandBand` を使うこと。
+     */
     band: { lo: number; hi: number };
+    /**
+     * 需要 D(m,y) の予測区間。`band × targetRate`（D は児童数に対して線形）。
+     * 登録率・需要のグラフに帯を描くならこちら。
+     */
+    demandBand: { lo: number; hi: number };
   }>;
   note?: Note;
   /** 打てる手を出すための近隣比較（スコアが低い順に数件） */
