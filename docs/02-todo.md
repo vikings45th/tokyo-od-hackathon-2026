@@ -45,58 +45,67 @@
 - [ ] `data/SOURCES.md` を最終確定（**ライセンスをAPIで再確認**）
 - [ ] **出荷オーナー**：提出フォーム①〜⑥
 
-#### 🔴 ③から②への依頼 → **依頼文は [`docs/17-setup-request.md`](17-setup-request.md)**
+#### 🔴 ③から②への依頼（第2版）→ **依頼文は [`docs/17-setup-request.md`](17-setup-request.md)**
 
-**②の Claude Code にそのまま貼れる形**にしてあります。
+> ⚠️ **第1版（セットアップ依頼）は破棄しました。** ②が先に `package.json` /
+> `tsconfig.json` / `vite.config.ts` / `vitest.config.ts` を作り終えていたためです
+> （Vite 8.2.2 / TypeScript 7。`@vitejs/plugin-react` 6.1.0 の peer `vite ^8` を満たすので
+> 調整は不要でした）。**②の src/core/ は実装完了・34テスト green・マージ済みです。**
 
-③が地図コロプレス＋HeroUI で作るため、**②の所有ファイルに1回だけセットアップが要ります。**
-**これが済んだ時点で③は分岐でき、以後の衝突はゼロになります。**
+**②の Claude Code にそのまま貼れる形**にしてあります。**依頼は3件だけ**です。
 
-- [ ] `package.json`：**React 19 / react-dom / @heroui/react / tailwindcss 4 / d3-geo / topojson-client** を追加
-- [ ] `vite.config.ts`：**Tailwind 4 の Vite プラグイン**を追加
-- [ ] `index.html`：**React のルート要素**を用意
-- [ ] `docs/05-tech.md` の技術選定表（「素のTypeScript／素のCSS」）を更新
-- [ ] 🔴 **`src/types.ts` の変更5点を確認**（③が③の実装都合で先に入れています。**②未着手のいまなら手戻りゼロ**）
-      1. `entryYearOf(birthYear, birthMonth)` — 早生まれ対応（4月2日〜翌4月1日が同学年）
-      2. `HeatmapCell` に `demand` / `supply` / `gap` — 地図ホバーで `buildMuniDetail` を49回呼ばずに済む
-      3. `Heatmap.bins` — 色の閾値は②が返す（③が決めるとデータ変更で色の意味が変わる）
-      4. `MuniDetail.alternatives` を**削除** — ②は地理を持たない。③が `topojson.neighbors()` で算出
-      5. `DEFAULT_SCENARIO` を export — `{ trend: 0.0084 }`
-      > 完全仕様は [`docs/15-interfaces.md`](15-interfaces.md) §3（境界B）。
-      > 呼び出しシーケンス・エッジケース・実データ入りのJSON例まで書いてあります。
-- [ ] `@vitejs/plugin-react` 6.1.0 の peer は **`vite ^8.0.0`**。Vite 7以下の雛形なら要調整
+- [ ] 🔴 **依頼A【blocking】`entryYearOf(birthYear, birthMonth?)`** — 早生まれ対応
+      （1〜3月生まれは入学年度が1年早い。全体の約1/4。6年後の住宅購入判断がまるごとずれる）
+      → 入るまで③は `src/ui/entryYear.ts` の暫定ラッパーで動かしています
+- [ ] 依頼B `MuniDetail.series` に **`demandBand`** を足す
+      （`band` は児童数の帯。実測で demand 2,189.8 に対し band は 9,701.8〜10,966.5 と桁が違う）
+      → blocking ではない。③側でも `band × rTarget` で厳密に導出できます
+- [ ] 依頼C `startup` という空の gitlink（mode 160000・`.gitmodules` なし）を消す
 
-> ②の実装には影響しません。`src/core/` は `AppData` を受けて `Heatmap`/`MuniDetail` を返す
-> 純粋な関数群で、**型の契約は1文字も変わりません**。
-> ライセンスは全て許容的（MIT / Apache-2.0 / ISC）で**コピーレフトはありません**。
-> Apache-2.0 の NOTICE 対応として、ビルド時に `LICENSES.txt` を `dist/` に出します。
+**依頼しないと決めたもの**（②の時間を使わせないため意識的に降ろしました）：
+`HeatmapCell` への `demand`/`supply`/`gap` 追加（`CoreCell.detail` にある）／
+`cells` の Map 化（`byMuni` がある）／`Heatmap.bins`（③が固定値で所有）／
+`score` の丸め（③が表示時に）／`alternatives` の変更（③が地理的隣接で作り直す）
+
+#### 🔴 ③から①への依頼 → **依頼文は [`docs/18-request-to-data.md`](18-request-to-data.md)**
+
+- [ ] 🔴 **依頼1【blocking】`data/app/data.json` を49自治体ぶん**
+      （`official[]` / `entrants[]` / `baseChildren` / `children2023` が未整備。
+      いまは6自治体の `sample.json` で動いていて、**地図の43自治体がグレー**です）
+      → 受け入れ検査は②の `validateAppData(data)` を使うこと
+- [ ] **依頼2 生成AIを前処理で1回だけ回して結果をコミット**
+      （用途① 様式不定CSVの読解ETLプラン／用途③ 制度差・外れ値の注記文）
+      → **提出項目③「生成AI等の活用方法」に書ける実装が、いまここしかありません**
 
 #### ② ロジック/AI担当
 
-- [ ] Vite ＋ TypeScript 雛形（`npx wrangler pages dev` が立ち上がるまで）
-- [ ] `src/core/forecast.ts`：進級率 → 按分 → 前進 → **raking**
-- [ ] `src/core/indicators/gakudo.ts`：**登録率ベースの指標**（設計書 §4-2）
-- [ ] 🔴 **`excluded: true` をヒートマップの色計算に入れない**（江戸川区が最上位に固定される）
-- [ ] `src/core/backtest.ts`：**絶対誤差平均が 1.51%（2年先）に再現されるか確認**
-- [ ] `src/api/scenario.ts`：**生成AI②**。スキーマ検証＋クランプ。**APIキーは環境変数**
+- [x] Vite ＋ TypeScript 雛形 ✅
+- [x] `src/core/forecast.ts` ✅（学校別コーホート＋raking は未実装だが、
+      出力は定義上ここの公式値と一致するのでスコアは変わらない）
+- [x] `src/core/indicators/gakudo.ts`：登録率ベースの指標 ✅
+- [x] 🔴 `excluded: true` を色の計算に入れない ✅（③側でも守っている）
+- [x] バックテスト ✅（`src/core/bands.ts`。実測できるのは1年先と2年先だけ）
+- [x] ~~`src/api/scenario.ts`~~ → **v1 では作らない。`PRESET_SCENARIOS` 5件に置き換え**
+      （$100上限とライセンス発行待ちに作品を依存させないため。`docs/05-tech.md`）
+- [ ] **③からの変更依頼3件**（上記）
 - [ ] **出荷オーナー**：デプロイと公開URL（**18:00–20:00 に初回デプロイを試す**）
 
 #### ③ UI担当
 
+- [x] **チャートを書く前に `dataviz` スキルを読む** ✅（配色は検証器にかけた）
+- [x] ヒートマップ（`bridged` の境界に縦線と説明） ✅
+- [x] 自治体詳細（需要と受け入れ実績の折れ線＋**需要の**予測区間・待機児童数） ✅
+- [x] **注記の出し分け**（制度が別枠／本物の不足／母数不足） ✅
+- [x] **打てる手**のセクション（地理的隣接＋スコア） ✅
+- [x] 🔴 **出典・ライセンス・取得日を画面に出す** ✅（S5。JS無効時も `<noscript>` に）
+- [x] 地図コロプレス ✅（拡大率1.8以上で自治体名ラベル）
+- [x] スクロール構成 S0〜S5。**箱を使わない** ✅
+- [x] 地図の拡大縮小・移動（`viewBox` 書き換え。d3-zoom は入れない） ✅
+- [x] ランキングリスト（面積バイアスの補正役） ✅
+- [x] ~~`/api/scenario` が落ちてもヒートマップが表示され続ける~~ → **API自体を作らないので該当なし**
 - [ ] 提出フォームを開いて記入項目を実際に見る
-- [ ] **チャートを書く前に `dataviz` スキルを読む**
-- [ ] ヒートマップ（**49自治体 × 入学年度**・`bridged` の境界を視覚的に区切る）
-- [ ] 自治体詳細（登録率の推移・予測区間の帯・待機児童数）
-- [ ] **注記の出し分け**（制度が別枠／本物の不足／母数不足）＋**別枠表示**
-- [ ] **打てる手**のセクション
-- [ ] 🔴 **出典・ライセンス・取得日を画面に出す**（絶対に捨てない提出要件）
-- [ ] 地図コロプレス（`data/geo/tokyo-49.topo.json` は生成済み・31.3KB）
-      **モックあり**：`docs/mockups/`（hero / number / story / tool / tool-zoom / sources）
-- [ ] スクロール構成 S0〜S5（`docs/16-ui-detail-design.md` §2）。**箱を使わない**
-- [ ] 地図の拡大縮小・移動（`viewBox` 書き換え・約40行。d3-zoom は入れない）
-- [ ] ランキングリスト（**面積バイアスの補正役**）
-- [ ] `bridged` 区間の斜線テクスチャ（**予測の確からしさの違いを示す**）
-- [ ] 🔴 **`/api/scenario` が落ちてもヒートマップが表示され続ける**こと
+- [ ] ①の `data/app/data.json` が来たら `src/ui/data.ts` の import を1行差し替える
+- [ ] ②の依頼Aが入ったら `src/ui/entryYear.ts` を消して core を直接呼ぶ
 - [ ] **出荷オーナー**：スライド・キャプチャ・動画台本
 
 #### 受け入れ条件（DoD）
