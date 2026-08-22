@@ -45,6 +45,32 @@
 - [ ] `data/SOURCES.md` を最終確定（**ライセンスをAPIで再確認**）
 - [ ] **出荷オーナー**：提出フォーム①〜⑥
 
+#### 🔴 ③から②への依頼 → **依頼文は [`docs/17-setup-request.md`](17-setup-request.md)**
+
+**②の Claude Code にそのまま貼れる形**にしてあります。
+
+③が地図コロプレス＋HeroUI で作るため、**②の所有ファイルに1回だけセットアップが要ります。**
+**これが済んだ時点で③は分岐でき、以後の衝突はゼロになります。**
+
+- [ ] `package.json`：**React 19 / react-dom / @heroui/react / tailwindcss 4 / d3-geo / topojson-client** を追加
+- [ ] `vite.config.ts`：**Tailwind 4 の Vite プラグイン**を追加
+- [ ] `index.html`：**React のルート要素**を用意
+- [ ] `docs/05-tech.md` の技術選定表（「素のTypeScript／素のCSS」）を更新
+- [ ] 🔴 **`src/types.ts` の変更5点を確認**（③が③の実装都合で先に入れています。**②未着手のいまなら手戻りゼロ**）
+      1. `entryYearOf(birthYear, birthMonth)` — 早生まれ対応（4月2日〜翌4月1日が同学年）
+      2. `HeatmapCell` に `demand` / `supply` / `gap` — 地図ホバーで `buildMuniDetail` を49回呼ばずに済む
+      3. `Heatmap.bins` — 色の閾値は②が返す（③が決めるとデータ変更で色の意味が変わる）
+      4. `MuniDetail.alternatives` を**削除** — ②は地理を持たない。③が `topojson.neighbors()` で算出
+      5. `DEFAULT_SCENARIO` を export — `{ trend: 0.0084 }`
+      > 完全仕様は [`docs/15-interfaces.md`](15-interfaces.md) §3（境界B）。
+      > 呼び出しシーケンス・エッジケース・実データ入りのJSON例まで書いてあります。
+- [ ] `@vitejs/plugin-react` 6.1.0 の peer は **`vite ^8.0.0`**。Vite 7以下の雛形なら要調整
+
+> ②の実装には影響しません。`src/core/` は `AppData` を受けて `Heatmap`/`MuniDetail` を返す
+> 純粋な関数群で、**型の契約は1文字も変わりません**。
+> ライセンスは全て許容的（MIT / Apache-2.0 / ISC）で**コピーレフトはありません**。
+> Apache-2.0 の NOTICE 対応として、ビルド時に `LICENSES.txt` を `dist/` に出します。
+
 #### ② ロジック/AI担当
 
 - [ ] Vite ＋ TypeScript 雛形（`npx wrangler pages dev` が立ち上がるまで）
@@ -64,6 +90,12 @@
 - [ ] **注記の出し分け**（制度が別枠／本物の不足／母数不足）＋**別枠表示**
 - [ ] **打てる手**のセクション
 - [ ] 🔴 **出典・ライセンス・取得日を画面に出す**（絶対に捨てない提出要件）
+- [ ] 地図コロプレス（`data/geo/tokyo-49.topo.json` は生成済み・31.3KB）
+      **モックあり**：`docs/mockups/`（hero / number / story / tool / tool-zoom / sources）
+- [ ] スクロール構成 S0〜S5（`docs/16-ui-detail-design.md` §2）。**箱を使わない**
+- [ ] 地図の拡大縮小・移動（`viewBox` 書き換え・約40行。d3-zoom は入れない）
+- [ ] ランキングリスト（**面積バイアスの補正役**）
+- [ ] `bridged` 区間の斜線テクスチャ（**予測の確からしさの違いを示す**）
 - [ ] 🔴 **`/api/scenario` が落ちてもヒートマップが表示され続ける**こと
 - [ ] **出荷オーナー**：スライド・キャプチャ・動画台本
 

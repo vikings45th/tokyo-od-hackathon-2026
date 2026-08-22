@@ -87,26 +87,191 @@ node -e "const d=require('./data/app/data.json'); console.assert(d.munis.length=
 
 ## 3. 境界B — ②ロジック → ③UI
 
-### ②が公開する関数（シグネチャのみ。中身は②の詳細設計）
+### ②が公開する関数【完全仕様】
+
+**中身の実装は②の詳細設計ですが、外から見える約束はここで固定します。**
 
 ```ts
-/** AppData を読み込み、予測とスコアを計算してヒートマップを返す */
+// src/core/index.ts
+
+/** 生年月 → 小1になる年度（西暦）。純関数・同期 */
+export function entryYearOf(birthYear: number, birthMonth: number): number;
+
+/** 既定シナリオ。③はこれを起点に差分を当てる */
+export const DEFAULT_SCENARIO: DefaultScenario;   // { trend: 0.0084 }
+
+/** 49自治体 × 全年度のスコアを一度に返す */
 export function buildHeatmap(
   data: AppData,
-  focusYear: number,        // ユーザーの子が小1になる年度
+  focusYear: number,
   scenario: Scenario,
 ): Heatmap;
 
-/** 1自治体の詳細 */
+/** 1自治体の詳細。存在しない muni は null */
 export function buildMuniDetail(
   data: AppData,
   muni: string,
   scenario: Scenario,
-): MuniDetail;
-
-/** 生まれ年 → 小1になる年度 */
-export function entryYearOf(birthYear: number): number;
+): MuniDetail | null;
 ```
+
+#### `entryYearOf(birthYear, birthMonth)`
+
+| | |
+|---|---|
+| 引数 | `birthYear` 西暦 ／ `birthMonth` **1〜12** |
+| 返り値 | 入学年度（西暦） |
+| 規則 | 学校教育法：**4月2日〜翌年4月1日生まれが同学年**<br>`birthYear + (birthMonth >= 4 ? 7 : 6)` |
+| 範囲外 | `birthMonth` が1〜12の外 → **例外を投げず**、12にクランプ |
+
+**境界値**（②はこの3つをテストしてください）：
+
+```
+(2024, 4) → 2031      (2025, 3) → 2031  ← 早生まれ      (2025, 4) → 2032
+```
+
+#### `buildHeatmap(data, focusYear, scenario)`
+
+| | |
+|---|---|
+| **事前条件** | `data.munis` は49自治体（島嶼部・郡部は①が除外済み） |
+| **返り値** | `Heatmap` |
+| `munis` | **`focusYear` のスコア降順**。`score` が `null` の自治体は末尾 |
+| `years` | **昇順**。既定 `2027…2038` |
+| `cells` | 🔴 **`munis` の順 × `years` の順**。長さは `munis.length * years.length` |
+| `focusYear` | 引数そのまま |
+| `bridgeFrom` | この年度以降が `basis: 'bridged'`。現データでは **2031** |
+| `bins` | **固定** `[0, 10, 25, 40, 60]`（分位にしない） |
+| `excludedMunis` | `note.kind === 'small-sample'` のみ。**`series-break` は入れない** |
+| **例外** | **投げない。** 計算できないセルは `score/demand/supply/gap` を全て `null` |
+
+🔴 **セルの添字は計算で引けます。③は Map を作りません。**
+
+```ts
+const idx = (h: Heatmap, muni: string, year: number) =>
+  h.munis.indexOf(muni) * h.years.length + h.years.indexOf(year);
+// ホットパスでは munis/years の index を一度だけ Map 化する
+```
+
+#### `buildMuniDetail(data, muni, scenario)`
+
+| | |
+|---|---|
+| 引数 `muni` | **`Muni.name`**（`code` ではない） |
+| 存在しない | 🔴 **`null` を返す。例外を投げない** |
+| `series` | `years` と同じ年度・同じ順序 |
+| `band` | 予測区間。**バックテストの実測誤差から**（1年先 ±1.5%／2年先 ±2.1〜2.6%／3年先以上は外挿） |
+| `alternatives` | **返しません**（③が算出。下記「③が②に依存しないもの」） |
+
+---
+
+### 実データでの例（中央区・2031年度）
+
+**モック `docs/mockups/mock-data.json` と同じ数字です。**
+
+```jsonc
+// Heatmap の1セル
+{
+  "muni": "中央区", "year": 2031,
+  "score": 41.0,
+  "basis": "bridged",      // 2031年度は都の公式推計(〜2030)を全都の伸びで接続した推定
+  "excluded": false,       // series-break でもスコアには含める
+  "demand": 2189.8,        // 需要（人）
+  "supply": 1291,          // 供給＝2025-05 の登録児童数
+  "gap": 898.8             // 不足人数
+}
+
+// Heatmap のメタ
+{
+  "focusYear": 2031, "bridgeFrom": 2031,
+  "bins": [0, 10, 25, 40, 60],
+  "munis": ["中央区", "品川区", "立川市", "東村山市", ...],   // 41, 23, 16, 12 …
+  "years": [2027, 2028, ..., 2038],
+  "excludedMunis": []       // 49自治体には small-sample が無いので空
+}
+
+// Muni.note（中央区）
+{ "kind": "real-shortage",
+  "text": "顕在需要率は都内最低水準（0.163）ですが、待機児童が275人おり、…" }
+```
+
+🔴 **江戸川区は `excluded: false` で、スコアに含まれます**（2031年度スコア0）。
+`note.kind` は `series-break`。**除外するのはトレンド計算からだけ**です。
+
+---
+
+### 呼び出しシーケンス（性能設計と対応）
+
+```
+[初期ロード]  fetch data/app/*.json          → AppData
+              fetch data/geo/tokyo-49.topo.json → topology
+              ③: neighbors(topology) を1回だけ計算してキャッシュ
+              ②: buildHeatmap(data, focusYear, DEFAULT_SCENARIO)
+
+[生年月を変更] focusYear = entryYearOf(y, m)
+              buildHeatmap(data, focusYear, scenario)
+              → 実質は行の並び替え。セルの値は変わらない
+
+[trendをドラッグ] buildHeatmap(data, focusYear, {...scenario, trend})
+              🔴 ③は requestAnimationFrame で間引く
+              🔴 ②は児童数予測を使い回す（trend に依存しないため）
+
+[自治体を選択]  buildMuniDetail(data, muni, scenario)   ← 1件だけ
+              ③: alternatives = neighbors × Heatmap.cells から算出
+
+[シナリオ適用]  POST /api/scenario → Scenario
+              buildHeatmap を1回。失敗時はベースラインを維持（要件 NFR-2）
+```
+
+---
+
+### エッジケース
+
+| 状況 | ②の返り値 | ③の表示 |
+|---|---|---|
+| 自治体のデータが欠測 | `score/demand/supply/gap` が全て `null` | グレー＋斜線＋「データなし」。🔴 **0点として塗らない** |
+| 射程外の年度（令和21年度以降） | `years` に含めない | 列を描かない |
+| `basis: 'bridged'` | `bridgeFrom` 以降 | ヒートマップは斜線。**地図は単一年度なので見出しにバッジで1回だけ**（`docs/16-ui-detail-design.md`） |
+| `note.kind: 'series-break'`（江戸川区） | **`excluded: false`。スコアに含む** | 注記を出す。🔴 **地図から消さない** |
+| `note.kind: 'small-sample'` | `excludedMunis` に入れる | 表の下に別枠 |
+| 存在しない muni | `buildMuniDetail` が `null` | 詳細パネルを空状態に戻す |
+| `/api/scenario` 失敗 | — | Toast のみ。**地図・ヒートマップ・ランキングは維持** |
+
+---
+
+### ③が②に依存しないもの【責務の線引き】
+
+**②に投げないでください。②の実装が増えるだけです。**
+
+| ③が自前でやる | 理由 |
+|---|---|
+| **`alternatives`（近隣の代替自治体）** | ②は地理を持たない。③が `topojson.neighbors()` で隣接を取り、`Heatmap.cells` のスコアと突き合わせる |
+| **色の割り当て** | ②は `bins`（閾値）だけ返す。hex は③のテーマの都合 |
+| **数値の丸め・単位・カンマ** | ②は生値を返す |
+| **文言**（注記の見出し・空状態・打てる手のラベル） | `note.text` 以外は③ |
+| **並び替えのUI**（別の年度で並べ直す等） | `cells` に全年度あるので③で完結 |
+
+### ②の言語・フレームワーク
+
+**素のTypeScript のままです。React は要りません。**
+`src/core/` は `AppData` を受けて `Heatmap` / `MuniDetail` を返す純関数群で、
+**React はビューの都合であって計算には無関係**だからです。
+②は `.ts`（`.tsx` ではない）を書き、React を import しません。
+
+**接点は `src/types.ts` の型だけ**なので、③が UI フレームワークを替えても②は無傷です。
+
+共有されるのは3つだけ：
+
+| 共有物 | 注意 |
+|---|---|
+| TypeScript のバージョンと `tsconfig` | ②③で1つ |
+| Vite のビルド設定 | ②所有 |
+| **`src/api/` のランタイム** | ⚠️ ここだけ別世界（下記） |
+
+> 🔴 **`src/api/` は Cloudflare Pages Functions ＝ Workers ランタイム**です。
+> Node でもブラウザでもありません。`fetch` はありますが
+> **`fs` / `path` / `Buffer` は使えません**（`nodejs_compat` を有効にしない限り）。
+> Node の感覚で書くとデプロイ時に落ちます。
 
 ### ②が守ること
 
@@ -118,6 +283,39 @@ export function entryYearOf(birthYear: number): number;
 - **`basis` を必ず埋める。** `official`（都の公式推計そのもの）と
   `bridged`（全都の伸び率で接続した推定）を③が描き分けます（要件 NFR-5）
 - **`Scenario.trend` の既定は 0.0084（+0.84pt/年・実測値）。** これがモデルを支配します（設計書 §0-2）
+
+#### 🔴 決定論的であること
+
+**`Math.random()` / `Date.now()` / `new Date()` を使わないでください。**
+
+UIは状態を URL に持ちます（`?birth=2024&muni=13102&trend=0.0084`）。
+審査員に「このURLを開いてください」と言えるようにするためです
+（`docs/16-ui-detail-design.md` §9）。
+**同じ入力から同じ出力が出ないと、この設計が丸ごと壊れます。**
+「今日」が必要なら**引数で渡してください**。
+
+#### 🔴 児童数の予測は `trend` に依存しない — ここで切ると速い
+
+**性能の勘所です。**
+
+```
+Projection（児童数）   ← scenario.housing にのみ依存
+r_target（需要率）     ← trend が効くのはここだけ
+```
+
+スライダーを動かしたとき、**重い予測エンジン（コーホート→按分→raking）を
+回し直す必要はありません。** そこで切って使い回せば、ドラッグ中は掛け算だけになります。
+**49自治体 × 12年度を毎フレーム再計算するかどうかの分かれ目**です。
+
+#### その他
+
+- **例外を投げない。** データ欠落は `score: null` を返す。
+  throw すると React のツリーが落ち、③が Error Boundary を書く羽目になります
+- **引数を変更しない（immutable）。** ③は `useMemo` で包むので、
+  ②が引数を書き換えると再計算の判定が壊れます
+- **丸めない。** 生の数値を返し、表示の丸めは③がやります
+- **同期関数にする。** `Promise` を返すとUI側のレンダリングが不必要に複雑になります
+  （データは事前ロード済み）
 - **`Indicator.compute` は純関数**にすること。シナリオ変更のたび49自治体×年度ぶん呼ばれます
 
 ### ③が守ること
