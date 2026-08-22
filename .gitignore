@@ -27,3 +27,9 @@ build/
 # ログ
 *.log
 npm-debug.log*
+
+# 取得した元データ（data/README.md 参照）
+# raw は転載不可のファイルを含むのでコミットしない。scripts/fetch_raw.py で取り直す
+data/raw/
+# 学童クラブ名簿はオープンデータカタログ未掲載＝転載不可。ライセンス確認が済むまで除外
+data/processed/gakudou_clubs_*.csv
