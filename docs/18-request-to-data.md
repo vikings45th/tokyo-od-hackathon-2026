@@ -68,8 +68,11 @@ const report = validateAppData(JSON.parse(fs.readFileSync('data/app/data.json', 
 書いてあるとおりで、`data/` 直下には**転載不可のPDF・CSV**が置かれており、
 `publicDir: '../data'` にすると**まるごと `dist/` にコピーされて公開URLから配信**されます。
 
-`data/app/` に `data.json` だけ（＋③が置く `tokyo-49.topo.json`）を置ければ、
-`publicDir: '../data/app'` の1行変更で安全に配信できます。
+> 📝 **訂正（2026-08-22）：`publicDir` の変更は不要になりました。**
+> ③のUIは `data/*.json` を **import** する方式にしました（Vite がバンドルに畳み込むので
+> 実行時 fetch も `publicDir` も要りません。ビルドもネットワークに触れません＝NFR-4）。
+> **それでも `data/app/` に分けて置いてください。** 将来 fetch 方式に変える余地を残すためと、
+> 「公開してよいファイルはここだけ」という境界を1か所に持たせるためです。
 
 ```
 data/
