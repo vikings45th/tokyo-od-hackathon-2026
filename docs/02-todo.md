@@ -38,8 +38,8 @@
 - [ ] `scripts/fetch.py`：8データセット＋係数2本 → `data/raw/`（**CP932→UTF-8で保存**）
 - [ ] **`data/raw/` をコミットする**（疎通しないメンバーでも動かせるように）
 - [ ] **生成AI①**：抽出プランを生成 → `scripts/plans/*.json` に**固定してコミット**
-- [ ] `scripts/normalize.py` → `data/app/{munis,schools,tokyo,backtest}.json`
-- [ ] **生成AI③**：注記生成 → `data/app/notes.json`（**江戸川区・中央区・島嶼部を区別**）
+- [ ] `scripts/normalize.py` → `data/app/data.json`（`AppData`形式・**1ファイルに集約**。2026-08-22 ②と合意）
+- [ ] **生成AI③**：注記生成 → 同ファイルの `munis[].note` に統合（**江戸川区・中央区・島嶼部を区別**）
 - [ ] 🔴 **こども家庭庁の学童データ（複数年度）をローカルで15分確認**
       → 取れれば `Scenario.trend` を実測値に差し替え（`data/SOURCES.md`）
 - [ ] `data/SOURCES.md` を最終確定（**ライセンスをAPIで再確認**）
