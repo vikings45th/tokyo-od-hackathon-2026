@@ -81,6 +81,11 @@ export function useZoomPan() {
     const el = svg.current;
     if (!el) return;
     const onWheel = (e: WheelEvent) => {
+      // 🔴 修飾キーなしのホイールは**ページに通す**。
+      //    以前は無条件に preventDefault していたため、全幅の地図がページスクロールの
+      //    トラップになっていた（下へ読み進められない）。拡大縮小は ⌘/Ctrl＋ホイール、
+      //    または zoombar の ＋/− ボタンで行う。
+      if (!e.ctrlKey && !e.metaKey) return;
       e.preventDefault();
       const r = el.getBoundingClientRect();
       setVb((v) => {
@@ -114,6 +119,16 @@ export function useZoomPan() {
 
   const reset = () => setVb(FULL);
 
+  /** 中心を保ったまま f 倍する。zoombar の ＋/− 用（ホイールに頼らない導線） */
+  const zoomBy = (f: number) =>
+    setVb((v) => {
+      const cx = v.x + v.w / 2;
+      const cy = v.y + v.h / 2;
+      const nw = v.w / f;
+      const nh = (nw * MAP_H) / MAP_W;
+      return clamp({ x: cx - nw / 2, y: cy - nh / 2, w: nw, h: nh });
+    });
+
   /** 矩形に寄る。縦横比は SVG に合わせる */
   const zoomTo = (box: Box | null) => {
     if (!box) return;
@@ -131,14 +146,112 @@ export function useZoomPan() {
     handlers: { onPointerDown, onPointerMove, onPointerUp, onDoubleClick: reset },
     reset,
     zoomTo,
+    zoomBy,
+    /** 全体表示に戻っているか。＋/− の disabled 判定に使う */
+    atFull: vb.w >= MAP_W,
   };
 }
 
-/** テーマ。既定はライト。data-theme は :root に立てる */
+/**
+ * テーマ。**既定は OS の設定に従う**（以前は light 固定だった）。
+ * 一度切り替えたら localStorage に残す。動画は1モードで撮る方針（docs/16 §14-2）なので
+ * 収録時は既定のまま触らない。
+ */
 export function useTheme(): ['light' | 'dark', () => void] {
-  const [theme, setTheme] = useState<'light' | 'dark'>('light');
+  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
+    try {
+      const saved = localStorage.getItem('theme');
+      if (saved === 'light' || saved === 'dark') return saved;
+    } catch {
+      /* プライベートウィンドウなどで throw することがある */
+    }
+    return typeof matchMedia !== 'undefined' && matchMedia('(prefers-color-scheme: dark)').matches
+      ? 'dark'
+      : 'light';
+  });
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
   }, [theme]);
-  return [theme, () => setTheme((t) => (t === 'light' ? 'dark' : 'light'))];
+  return [
+    theme,
+    () =>
+      setTheme((t) => {
+        const next = t === 'light' ? 'dark' : 'light';
+        try {
+          localStorage.setItem('theme', next);
+        } catch {
+          /* 保存できなくても動作に影響しない */
+        }
+        return next;
+      }),
+  ];
+}
+
+/**
+ * 画面の状態を URL に持たせる（設計書 §9）。
+ *
+ * 🔴 これが無いと「審査員にこのURLを開いてください」と言えないし、
+ *    **8/26〜31 の収録で同じ画面を再現できない**（別マシン・1週間後）。
+ * ルータは入れない。`URLSearchParams` ＋ `history.replaceState` で足りる。
+ */
+export function readParam(key: string): string | null {
+  if (typeof location === 'undefined') return null;
+  return new URLSearchParams(location.search).get(key);
+}
+
+/** 渡した値を URL に反映する。null / undefined のキーは消す */
+export function useSyncUrl(params: Record<string, string | null | undefined>): void {
+  const json = JSON.stringify(params);
+  useEffect(() => {
+    if (typeof location === 'undefined') return;
+    const sp = new URLSearchParams();
+    for (const [k, v] of Object.entries(JSON.parse(json) as Record<string, string | null>)) {
+      if (v !== null && v !== undefined && v !== '') sp.set(k, v);
+    }
+    const q = sp.toString();
+    history.replaceState(null, '', q ? `?${q}` : location.pathname);
+  }, [json]);
+}
+
+/**
+ * 画面に入ったら 0 → target までカウントアップする。2分動画の見せ場用。
+ *
+ * ライブラリは足さない（Motion を入れると gzip +40KB を超える。docs/16 §7-3）。
+ * 🔴 初期値は target そのもの。JS が動かない／`prefers-reduced-motion` のときは
+ *    そのまま最終値が出るので、数字が 0 のまま止まることはない。
+ */
+export function useCountUp(target: number, ms = 1200): [number, (el: HTMLElement | null) => void] {
+  const [v, setV] = useState(target);
+  const done = useRef(false);
+  useEffect(() => {
+    if (!done.current) setV(target);
+  }, [target]);
+  const ref = useCallback(
+    (el: HTMLElement | null) => {
+      if (!el || done.current) return;
+      if (typeof IntersectionObserver === 'undefined') return;
+      if (typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+      const io = new IntersectionObserver(
+        (es) => {
+          for (const e of es) {
+            if (!e.isIntersecting || done.current) continue;
+            done.current = true;
+            io.disconnect();
+            const t0 = performance.now();
+            const tick = (t: number) => {
+              const p = Math.min(1, (t - t0) / ms);
+              setV(Math.round(target * (1 - Math.pow(1 - p, 3))));
+              if (p < 1) requestAnimationFrame(tick);
+            };
+            setV(0);
+            requestAnimationFrame(tick);
+          }
+        },
+        { threshold: 0.4 },
+      );
+      io.observe(el);
+    },
+    [target, ms],
+  );
+  return [v, ref];
 }

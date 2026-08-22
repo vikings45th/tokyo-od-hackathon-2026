@@ -54,20 +54,33 @@ function ChoroplethBase({
         // 🔴 score が null は「データなし」。0点として色を付けない。
         //    excluded（母数不足）も色の計算に入れない。
         const score = !c || c.excluded ? null : c.score;
+        const label = `${s.name} ${score === null ? 'データなし' : `リスク ${Math.round(score)}パーセント`}`;
         return (
           <path
             key={s.code}
             className={`mp${selected === s.name ? ' sel' : ''}`}
             d={s.d}
             fill={fillOf(score, palette)}
+            // 🔴 装飾でないときは**キーボードでも選べる**ようにする（設計書 §11）。
+            //    以前は onClick だけで、Tab でも読み上げでも到達できなかった。
+            role={decorative ? undefined : 'button'}
+            tabIndex={decorative ? undefined : 0}
+            aria-label={decorative ? undefined : label}
+            aria-current={!decorative && selected === s.name ? 'true' : undefined}
             onClick={decorative ? undefined : () => onSelect?.(s.name)}
+            onKeyDown={
+              decorative
+                ? undefined
+                : (e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      onSelect?.(s.name);
+                    }
+                  }
+            }
             style={decorative ? undefined : { cursor: 'pointer' }}
           >
-            {!decorative && (
-              <title>
-                {s.name}　{score === null ? 'データなし' : `リスク ${Math.round(score)}`}
-              </title>
-            )}
+            {!decorative && <title>{label}</title>}
           </path>
         );
       })}

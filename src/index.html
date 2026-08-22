@@ -3,8 +3,16 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>小1の壁マップ ｜ 東京都オープンデータ</title>
-<meta name="description" content="子が小1になる年度に、その自治体で学童がどれくらい足りないかを、東京都の公式推計から予測します。">
+<title>小1の壁マップ ｜ 子が小1になる年の学童リスクを、引っ越す前に</title>
+<meta name="description" content="子が小1になる年度に、その自治体で学童がどれくらい足りないかを、東京都の公式推計から予測します。東京都オープンデータ（CC BY 4.0）を利用。">
+<!-- OGP。公開URLは審査員に渡り、オーディエンス賞は視聴者投票なので SNS に貼られる。
+     ⚠️ og:image は絶対URLが要る。デプロイ先URLが確定したら og:url とあわせて追記すること。 -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="小1の壁マップ">
+<meta property="og:title" content="保育園には、入れた。でも、小1で詰んだ。">
+<meta property="og:description" content="家を決めるのは、いま。詰むのは、6年後。東京都オープンデータから、子が小1になる年度の学童リスクを49自治体で予測します。">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%231c5cab'/%3E%3Ctext x='32' y='44' font-size='34' font-weight='800' font-family='Hiragino Sans,Noto Sans JP,sans-serif' fill='%23fff' text-anchor='middle'%3E小1%3C/text%3E%3C/svg%3E">
 </head>
 <body>
 <div id="root"></div>
@@ -29,10 +37,10 @@
       「学童クラブ事業の区市町村別実施状況」（東京都福祉局）　いずれも
       クリエイティブ・コモンズ 表示 4.0（CC BY 4.0）。<br>
       地図：「国土数値情報（行政区域データ）」（国土交通省）を加工して作成。<br>
-      本サービスは上記データを加工して作成しています。
+      本サービスは上記データを加工して作成しています。東京都が提供する公式サービスではありません。
     </p>
   </div>
 </noscript>
-<script type="module" src="./ui/main.tsx"></script>
+<script type="module" src="./ui/mainLp.tsx"></script>
 </body>
 </html>

@@ -43,3 +43,6 @@ startup/
 
 # ③の作業用（スクリーンショット等）。コミットしない
 /scratch/
+
+# 撮り直せるので、ダーク版のスクリーンショットは追跡しない（THEME=dark で再生成できる）
+docs/mockups/app/*-dark.png
