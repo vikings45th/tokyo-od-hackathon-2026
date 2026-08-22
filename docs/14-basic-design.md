@@ -122,13 +122,14 @@ p10 +0.28pt 〜 p90 +1.87pt と**自治体間のばらつきが大きい**（豊
   │                                          ▼                               │
   │                                   normalize.py（決定論的パーサ）          │
   │                                          ▼                               │
-  │                        data/app/{munis,schools,backtest}.json  約455KB    │
-  │                        data/app/notes.json ◀── 【生成AI③】注記（1回だけ） │
+  │                        【生成AI③】注記生成（1回だけ）→ munis[].note に統合 │
+  │                                          ▼                               │
+  │                     data/app/data.json（AppData形式・1ファイル）約455KB   │
   └──────────────────────────────────────────────────────────────────────────┘
                                              │  静的アセットとして配信
                                              ▼
   ┌─ 実行時 ─────────────────────────────────────────────────────────────────┐
-  │  [Cloudflare Pages]  静的配信（HTML/JS/CSS ＋ data/app/*.json）           │
+  │  [Cloudflare Pages]  静的配信（HTML/JS/CSS ＋ data/app/data.json）        │
   │        │                                                                 │
   │        ├─ src/core/  予測エンジン → 指標プラグイン → スコア               │
   │        │             **ブラウザ内で都の推計モデルを再実行**                │
@@ -164,10 +165,10 @@ schools.json（1,270校 × 3年 × 6学年 ＋ 住所）  171.7 KB → gzip 51.7
 |---|---|---|---|---|
 | 1 | 都・国・民間のCSV | `fetch.py`（CP932→UTF-8） | `data/raw/*.csv` | ① |
 | 2 | `data/raw/` 先頭30行 | **生成AI①**（1回・固定） | `scripts/plans/*.json` | ① |
-| 3 | `data/raw/` ＋ プラン | `normalize.py`（決定論的） | `data/app/munis.json` `schools.json` | ① |
-| 4 | `data/app/munis.json` | **生成AI③**（1回・固定） | `data/app/notes.json` | ① |
-| 5 | 推計3ヴィンテージ | `backtest.ts` | `data/app/backtest.json` | ② |
-| 6 | `data/app/*` ＋ シナリオ | `forecast.ts` → 指標プラグイン | `Score` / `HeatmapCell` | ② |
+| 3 | `data/raw/` ＋ プラン | `normalize.py`（決定論的） | `data/app/data.json` の `munis`/`schools`（**1ファイルに集約**） | ① |
+| 4 | `data/app/data.json` の `munis` | **生成AI③**（1回・固定） | 同ファイルの `munis[].note` に統合 | ① |
+| 5 | 推計3ヴィンテージ | `backtest.ts` | `data/app/data.json` の `backtest` | ② |
+| 6 | `data/app/data.json` ＋ シナリオ | `forecast.ts` → 指標プラグイン | `Score` / `HeatmapCell` | ② |
 | 7 | 自然文 | **生成AI②**（実行時） | `Scenario`（検証済み） | ② |
 | 8 | `Score` ほか | 描画 | 画面 | ③ |
 
@@ -283,7 +284,7 @@ v1は軸1のみなので `gakudo` のスコアがそのまま総合スコアに�
 > 🔴 **`series-break` をトレンド計算に入れないこと。**
 > 江戸川区を入れると都平均のトレンドが +0.84pt/年 から大きく歪みます。
 
-**注記の文面は生成AI③が前処理で生成し、`data/app/notes.json` にコミットします**（§7）。
+**注記の文面は生成AI③が前処理で生成し、`data/app/data.json` の `munis[].note` に統合してコミットします**（§7）。
 
 ### 4-5. シナリオ変数
 
@@ -483,11 +484,11 @@ R7 93,532（実数）→ R12 76,342 → R13 76,616 → R15 75,694 → R20 78,373
 scripts/            ① Python。前処理。ビルドとは分離
   fetch.py          データ取得 → data/raw/（CP932→UTF-8）
   plans/*.json      生成AI①の抽出プラン（コミットして固定）
-  normalize.py      プランを実行 → data/app/*.json
-  notes.py          生成AI③ → data/app/notes.json
+  normalize.py      プランを実行 → data/app/data.json（munis/schools/tokyo/backtest/sources）
+  notes.py          生成AI③ → data/app/data.json の munis[].note に統合
 data/
   raw/              取得済み生CSV（**コミットする**）
-  app/              munis.json / schools.json / backtest.json / notes.json
+  app/              data.json（AppData形式・本番データ1ファイル）
   sample.json       型に沿ったダミー（②③が実データを待たずに書ける）
   SOURCES.md        提出項目⑤
 src/

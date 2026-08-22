@@ -26,15 +26,13 @@
  ────────                   ─────────────                   ────
  scripts/ で生成
       │
-      ├── data/app/munis.json   ─┐
-      ├── data/app/schools.json ─┤
-      ├── data/app/tokyo.json   ─┼─▶ AppData ──▶ forecast.ts
-      ├── data/app/backtest.json─┤                   │
-      └── data/app/notes.json   ─┘                   ▼
-                                              Projection[]
-                                                     │
+      └── data/app/data.json（AppData形式・本番・1ファイル） ─▶ AppData ──▶ forecast.ts
+                                                                    │
+                                                                    ▼
+                                                             Projection[]
+                                                                    │
       data/sample.json ─────────────────────▶  indicators/  ◀── Scenario
-      （①が先に置く。②③はこれで着手）             │            ▲
+      （①が先に置くダミー。②③はこれで着手）        │            ▲
                                                      ▼            │
                                           Heatmap / MuniDetail ────┼──▶ 画面
                                                                   │
@@ -55,14 +53,13 @@
 
 ### ①が作るファイル
 
+> **2026-08-22 ②と合意：本番も5分割ではなく `data/app/data.json` に1ファイル集約する。**
+> `data/sample.json` と同じ形（`AppData`）のまま、内容をダミーから実データへ差し替える。
+
 | ファイル | 型 | 中身 |
 |---|---|---|
-| `data/app/munis.json` | `Muni[]` | 49自治体。公式推計・就学予定者・**2025年度実績児童数**・**学童3時点**・注記 |
-| `data/app/schools.json` | `School[]` | 公立小。令和5・6・7の3年分の学年別児童数と住所 |
-| `data/app/tokyo.json` | `TokyoTotal` | **全都の令和7〜20年度**。`bridged` 区間の接続に使う（設計書 §5-2） |
-| `data/app/backtest.json` | `Backtest[]` | 1年先・2年先の実測誤差 |
-| `data/app/notes.json` | `Record<string, Note>` | 自治体名 → 注記。生成AI③の出力 |
-| `data/sample.json` | `AppData` | **上記を1ファイルにまとめたダミー。②③はまずこれで書く** |
+| `data/app/data.json` | `AppData` | **本番データ本体（1ファイル）**。`munis`（49自治体。公式推計・就学予定者・**2025年度実績児童数**・**学童3時点**）／`schools`（公立小。令和5・6・7の3年分の学年別児童数と住所）／`tokyo`（**全都の令和7〜20年度**。`bridged` 区間の接続に使う。設計書 §5-2）／`backtest`（1年先・2年先の実測誤差）／`sources` を持つ。生成AI③が作る注記は `munis[].note` に統合してから書き込む（中間ファイルとして `munis.json` 等に分けて作業するのは①の内部実装の自由） |
+| `data/sample.json` | `AppData` | **`data/app/data.json` と同じ形のダミー**（6自治体18校）。②③は実データを待たずにまずこれで書く |
 
 ### ①が守ること
 
@@ -81,7 +78,7 @@
 
 ```bash
 # 型どおりか
-node -e "const d=require('./data/app/munis.json'); console.assert(d.length===49)"
+node -e "const d=require('./data/app/data.json'); console.assert(d.munis.length===49)"
 # 結合キーが揃っているか（schools の muni が munis に存在するか）
 # baseChildren が 0 や null になっていないか
 ```
