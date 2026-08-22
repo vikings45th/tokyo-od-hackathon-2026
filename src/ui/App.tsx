@@ -9,6 +9,7 @@ import { PRESET_SCENARIOS, type CoreCell, type CoreResult } from '../core';
 import type { Scenario } from '../types';
 import { BIN_LABELS, PALETTES, binOf, fillOf } from './palette';
 import { Choropleth } from './Choropleth';
+import { Series } from './Series';
 import { DATA, GEO, TREND, compute, fmt, missingMunis, pt } from './data';
 import { bboxOf } from './geo';
 import { entryYearOf, isEarlyBirth } from './entryYear';
@@ -417,6 +418,8 @@ export default function App() {
                 </div>
               </div>
             )}
+
+            {sel && <Series core={core} muni={sel} theme={theme} />}
 
             <div className="acts">
               {alternatives.length === 0 && (

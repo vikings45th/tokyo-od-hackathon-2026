@@ -17,7 +17,7 @@
   --bg-2:#f4f4f2;      /* 入力など、面に載る小物だけ */
   --ink-1:#0b0b0b; --ink-2:#52514e; --ink-3:#8a8983; --hair:#e6e6e1;
   --accent:#1c5cab; --scrim:255,255,255; --ghost-op:.22;
-  --num-a:#2a78d6; --num-b:#0d366b;
+  --num-a:#2a78d6; --num-b:#0d366b; --band-op:.15;
   --warn:#b06a00; --crit:#c23434;
   --btn-bg:#0d366b; --btn-ink:#ffffff;
   --fs-hero:clamp(40px,6.4vw,96px);
@@ -29,7 +29,7 @@
   --bg-0:#0a0a0b; --bg-1:#101011; --bg-2:#16161a;
   --ink-1:#f6f6f5; --ink-2:#a3a3a1; --ink-3:#6a6a68; --hair:#232326;
   --accent:#cde2fb; --scrim:10,10,11; --ghost-op:.16;
-  --num-a:#cde2fb; --num-b:#2a78d6;
+  --num-a:#cde2fb; --num-b:#2a78d6; --band-op:.26;
   --warn:#fab219; --crit:#e66767;
   --btn-bg:#cde2fb; --btn-ink:#0a1626;
 }
@@ -218,7 +218,8 @@ details.more p{margin-top:8px;font-size:12.5px;color:var(--ink-3);max-width:56em
 .series .lbl{fill:var(--ink-3);font-size:10px}
 .series .dm{fill:none;stroke:var(--accent);stroke-width:2}
 .series .sp{fill:none;stroke:var(--ink-3);stroke-width:1.5;stroke-dasharray:4 3}
-.series .bd{fill:var(--accent);opacity:.13}
+/* 帯の濃さ。暗い面では .13 だと沈むので上げる（目視で決定） */
+.series .bd{opacity:var(--band-op)}
 .series .bridge{stroke:var(--ink-3);stroke-width:1;stroke-dasharray:2 3}
 
 /* ホバーで出す補足。native title だと読ませたい文が長すぎる */
@@ -235,3 +236,14 @@ details.more p{margin-top:8px;font-size:12.5px;color:var(--ink-3);max-width:56em
   .mid{padding:0 22px}
   .grid{grid-template-columns:60px repeat(12,1fr);gap:2px}
 }
+
+/* 需要と供給の折れ線 */
+.series-hd{display:flex;align-items:baseline;justify-content:space-between;gap:20px;margin-bottom:10px}
+.series-legend{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--ink-3)}
+.series-legend > span{display:inline-block;width:14px;height:3px;border-radius:2px;margin-left:10px}
+.series-legend > span:first-child{margin-left:0}
+.series-legend .bandkey{height:9px;opacity:.18;border-radius:2px}
+.series .cross{stroke:var(--ink-3);stroke-width:1;stroke-dasharray:3 3}
+.series .dl{fill:var(--ink-2);font-weight:700}
+.series-tip{margin-top:8px;font-size:12px;color:var(--ink-2);min-height:1.6em}
+.series-tip b{color:var(--ink-1);font-weight:700}
