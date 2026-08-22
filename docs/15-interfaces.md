@@ -29,10 +29,14 @@
 - **§4「境界C（`/api/scenario`）」は v1 では作りません。** ②は `PRESET_SCENARIOS` 5件に
   置き換えました。判断と理由は `docs/14-basic-design.md` §7 と `docs/05-tech.md`
 
-**②に出している変更依頼は `docs/17-setup-request.md`（2件）です。**
-うち `entryYearOf(birthYear, birthMonth?)`（早生まれ）は blocking で、
-入るまで③は `src/ui/entryYear.ts` の暫定ラッパーで動かしています
-（②が対応したかを実行時に検知して、対応済みなら core を直接呼ぶ）。
+**③が②に出した変更依頼3件は、すべて②が対応済みです**（`docs/17-setup-request.md`）。
+
+- `entryYearOf(birthYear, birthMonth?)` — 早生まれ対応。`isEarlyBirth` / `entryAgeOffset` も公開
+- `MuniDetail.series[].demandBand` — `band × targetRate`。`band` は児童数の帯なので需要の軸に描かない
+- `startup` の空 gitlink を削除
+
+→ ③の暫定ラッパー `src/ui/entryYear.ts` は**削除しました。**
+`src/ui/App.tsx` は `../core` の `entryYearOf` / `isEarlyBirth` を直接呼びます。
 
 ---
 

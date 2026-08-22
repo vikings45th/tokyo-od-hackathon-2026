@@ -1,5 +1,17 @@
 # ②への変更依頼（第2版・2026-08-22）
 
+> ✅ **3件とも②が対応済みです（`abcdae0` → main `c8379f2`）。このドキュメントは記録として残します。**
+>
+> | 依頼 | 結果 |
+> |---|---|
+> | A 早生まれ | `entryYearOf(birthYear, birthMonth?)`。加えて `isEarlyBirth` / `entryAgeOffset` も公開され、`birthYearOf` も対称になった。「4月1日生まれだけは月では区別できない」という限界もコメントに明記された |
+> | B `demandBand` | `MuniDetail.series[].demandBand`（`band × targetRate`）。`band` 側にも「これは児童数の帯であって需要の帯ではない」と明記された |
+> | C `startup` の gitlink | 削除＋`.gitignore` に追加 |
+>
+> ③側は依頼Aが入ったので **`src/ui/entryYear.ts`（暫定ラッパー）を削除**し、
+> `../core` の `entryYearOf` / `isEarlyBirth` を直接使うようにしました。
+> **検証：2025年3月生まれ → 2031年度／2025年4月生まれ → 2032年度**（切替後も同じ答え）。
+
 > **第1版（セットアップ依頼）は破棄しました。** ②が先に `package.json` /
 > `tsconfig.json` / `vite.config.ts` / `vitest.config.ts` を作り終えていたためです。
 > Vite 8.2.2 / TypeScript 7 で、③が入れる `@vitejs/plugin-react` 6.1.0 の

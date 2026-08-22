@@ -5,14 +5,13 @@
  * 箱（枠線＋影のカード）は使わない。区切りは余白と1pxのヘアラインだけ。
  */
 import { useMemo, useState } from 'react';
-import { PRESET_SCENARIOS, type CoreCell, type CoreResult } from '../core';
+import { PRESET_SCENARIOS, entryYearOf, isEarlyBirth, type CoreCell, type CoreResult } from '../core';
 import type { Scenario } from '../types';
 import { BIN_LABELS, PALETTES, binOf, fillOf } from './palette';
 import { Choropleth } from './Choropleth';
 import { Series } from './Series';
 import { DATA, GEO, TREND, compute, fmt, missingMunis, pt } from './data';
 import { bboxOf } from './geo';
-import { entryYearOf, isEarlyBirth } from './entryYear';
 import { useInView, useScrollStep, useTheme, useZoomPan } from './hooks';
 
 const STORY_YEARS = [2027, 2031, 2038];

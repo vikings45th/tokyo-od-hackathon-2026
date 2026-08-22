@@ -4,9 +4,11 @@
  * 🔴 予測区間に `projection.band` を**そのまま使わないこと。**
  *    あれは児童数（全学年）の帯で、需要とは桁が違う。
  *    実測（中央区・2031年度）：demand 2,189.8 に対し band は 9,701.8〜10,966.5。
- *    需要は児童数に対して線形（demand = children × rTarget）なので、
- *    帯にも同じ rTarget を掛ける。②に demandBand の追加を依頼中（docs/17 依頼B）で、
- *    入ったらこの導出を捨てて②の値を使う。
+ *    需要は児童数に対して線形（demand = children × rTarget）なので、帯にも同じ rTarget を掛ける。
+ *
+ *    ②も `MuniDetail.series[].demandBand` で**同じ式**を公開している（docs/17 依頼B・対応済み）。
+ *    ③は `MuniDetail` ではなく `CoreResult` から一度に描いているのでここで導出しているが、
+ *    値は一致する。式を変えるときは②の `muniDetail.ts` と揃えること。
  *
  * dataviz スキルの決まりに従っている：
  *   - 軸は1本（需要も供給も単位は「人」）。二軸グラフにしない

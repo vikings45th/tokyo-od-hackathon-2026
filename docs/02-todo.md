@@ -54,13 +54,12 @@
 
 **②の Claude Code にそのまま貼れる形**にしてあります。**依頼は3件だけ**です。
 
-- [ ] 🔴 **依頼A【blocking】`entryYearOf(birthYear, birthMonth?)`** — 早生まれ対応
-      （1〜3月生まれは入学年度が1年早い。全体の約1/4。6年後の住宅購入判断がまるごとずれる）
-      → 入るまで③は `src/ui/entryYear.ts` の暫定ラッパーで動かしています
-- [ ] 依頼B `MuniDetail.series` に **`demandBand`** を足す
-      （`band` は児童数の帯。実測で demand 2,189.8 に対し band は 9,701.8〜10,966.5 と桁が違う）
-      → blocking ではない。③側でも `band × rTarget` で厳密に導出できます
-- [ ] 依頼C `startup` という空の gitlink（mode 160000・`.gitmodules` なし）を消す
+- [x] 🔴 **依頼A【blocking】`entryYearOf(birthYear, birthMonth?)`** ✅ 対応済み（`abcdae0`）
+      → `isEarlyBirth` / `entryAgeOffset` も公開され、`birthYearOf` も対称になった。
+      **③の暫定ラッパー `src/ui/entryYear.ts` は削除済み**
+- [x] 依頼B `MuniDetail.series` に **`demandBand`** ✅ 対応済み。`band × targetRate`。
+      `band` 側にも「これは児童数の帯であって需要の帯ではない」と明記された
+- [x] 依頼C `startup` という空の gitlink を消す ✅ 対応済み（`.gitignore` にも追加）
 
 **依頼しないと決めたもの**（②の時間を使わせないため意識的に降ろしました）：
 `HeatmapCell` への `demand`/`supply`/`gap` 追加（`CoreCell.detail` にある）／
@@ -87,7 +86,7 @@
 - [x] バックテスト ✅（`src/core/bands.ts`。実測できるのは1年先と2年先だけ）
 - [x] ~~`src/api/scenario.ts`~~ → **v1 では作らない。`PRESET_SCENARIOS` 5件に置き換え**
       （$100上限とライセンス発行待ちに作品を依存させないため。`docs/05-tech.md`）
-- [ ] **③からの変更依頼3件**（上記）
+- [x] **③からの変更依頼3件** ✅ すべて対応済み（`abcdae0`）
 - [ ] **出荷オーナー**：デプロイと公開URL（**18:00–20:00 に初回デプロイを試す**）
 
 #### ③ UI担当
@@ -105,7 +104,7 @@
 - [x] ~~`/api/scenario` が落ちてもヒートマップが表示され続ける~~ → **API自体を作らないので該当なし**
 - [ ] 提出フォームを開いて記入項目を実際に見る
 - [ ] ①の `data/app/data.json` が来たら `src/ui/data.ts` の import を1行差し替える
-- [ ] ②の依頼Aが入ったら `src/ui/entryYear.ts` を消して core を直接呼ぶ
+- [x] ②の依頼Aが入ったので `src/ui/entryYear.ts` を削除し core を直接呼ぶようにした ✅
 - [ ] **出荷オーナー**：スライド・キャプチャ・動画台本
 
 #### 受け入れ条件（DoD）
