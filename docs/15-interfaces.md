@@ -111,6 +111,28 @@ export function buildMuniDetail(
 export function entryYearOf(birthYear: number): number;
 ```
 
+### ②の言語・フレームワーク
+
+**素のTypeScript のままです。React は要りません。**
+`src/core/` は `AppData` を受けて `Heatmap` / `MuniDetail` を返す純関数群で、
+**React はビューの都合であって計算には無関係**だからです。
+②は `.ts`（`.tsx` ではない）を書き、React を import しません。
+
+**接点は `src/types.ts` の型だけ**なので、③が UI フレームワークを替えても②は無傷です。
+
+共有されるのは3つだけ：
+
+| 共有物 | 注意 |
+|---|---|
+| TypeScript のバージョンと `tsconfig` | ②③で1つ |
+| Vite のビルド設定 | ②所有 |
+| **`src/api/` のランタイム** | ⚠️ ここだけ別世界（下記） |
+
+> 🔴 **`src/api/` は Cloudflare Pages Functions ＝ Workers ランタイム**です。
+> Node でもブラウザでもありません。`fetch` はありますが
+> **`fs` / `path` / `Buffer` は使えません**（`nodejs_compat` を有効にしない限り）。
+> Node の感覚で書くとデプロイ時に落ちます。
+
 ### ②が守ること
 
 - 🔴 **「除外」には2種類あります。取り違えないこと**（設計書 §4-4）。
@@ -121,6 +143,39 @@ export function entryYearOf(birthYear: number): number;
 - **`basis` を必ず埋める。** `official`（都の公式推計そのもの）と
   `bridged`（全都の伸び率で接続した推定）を③が描き分けます（要件 NFR-5）
 - **`Scenario.trend` の既定は 0.0084（+0.84pt/年・実測値）。** これがモデルを支配します（設計書 §0-2）
+
+#### 🔴 決定論的であること
+
+**`Math.random()` / `Date.now()` / `new Date()` を使わないでください。**
+
+UIは状態を URL に持ちます（`?birth=2024&muni=13102&trend=0.0084`）。
+審査員に「このURLを開いてください」と言えるようにするためです
+（`docs/16-ui-detail-design.md` §9）。
+**同じ入力から同じ出力が出ないと、この設計が丸ごと壊れます。**
+「今日」が必要なら**引数で渡してください**。
+
+#### 🔴 児童数の予測は `trend` に依存しない — ここで切ると速い
+
+**性能の勘所です。**
+
+```
+Projection（児童数）   ← scenario.housing にのみ依存
+r_target（需要率）     ← trend が効くのはここだけ
+```
+
+スライダーを動かしたとき、**重い予測エンジン（コーホート→按分→raking）を
+回し直す必要はありません。** そこで切って使い回せば、ドラッグ中は掛け算だけになります。
+**49自治体 × 12年度を毎フレーム再計算するかどうかの分かれ目**です。
+
+#### その他
+
+- **例外を投げない。** データ欠落は `score: null` を返す。
+  throw すると React のツリーが落ち、③が Error Boundary を書く羽目になります
+- **引数を変更しない（immutable）。** ③は `useMemo` で包むので、
+  ②が引数を書き換えると再計算の判定が壊れます
+- **丸めない。** 生の数値を返し、表示の丸めは③がやります
+- **同期関数にする。** `Promise` を返すとUI側のレンダリングが不必要に複雑になります
+  （データは事前ロード済み）
 - **`Indicator.compute` は純関数**にすること。シナリオ変更のたび49自治体×年度ぶん呼ばれます
 
 ### ③が守ること
