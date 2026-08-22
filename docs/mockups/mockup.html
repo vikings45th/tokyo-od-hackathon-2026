@@ -1,315 +1,444 @@
 <!doctype html>
 <meta charset="utf-8">
-<title>小1の壁マップ — 画面モック</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>小1の壁マップ</title>
 <style>
 :root{
-  --surface-0:#f4f4f2; --surface-1:#fcfcfb; --surface-2:#eeeeeb;
-  --ink-1:#0b0b0b; --ink-2:#52514e; --ink-3:#8a8983;
-  --line:#e2e2dd;
-  --b1:#86b6ef; --b2:#5598e7; --b3:#2a78d6; --b4:#1c5cab; --b5:#0d366b;
-  --warning:#fab219; --serious:#ec835a; --critical:#d03b3b; --good:#0ca30c;
-  --radius:14px;
+  /* ── ライト（既定）──
+     ⚠️ ランプの最淡 #86b6ef は純白系でないと対面2:1を割る。
+        #ffffff 2.11:1 / #fcfcfb 2.06:1 は PASS、#f7f7f5 は 1.97:1 で FAIL。
+        セクション背景をグレーにしないこと。 */
+  --bg-0:#ffffff;      /* ヒーロー */
+  --bg-1:#fcfcfb;      /* ツール */
+  --bg-2:#f4f4f2;      /* 入力など、面に載る小物だけ */
+  --ink-1:#0b0b0b; --ink-2:#52514e; --ink-3:#8a8983; --hair:#e6e6e1;
+  --accent:#1c5cab; --scrim:255,255,255; --ghost-op:.22;
+  --num-a:#2a78d6; --num-b:#0d366b;
+  --warn:#b06a00; --crit:#c23434;
+  --btn-bg:#0d366b; --btn-ink:#ffffff;
+  --fs-hero:clamp(40px,6.4vw,96px);
+  --fs-sect:clamp(30px,4.4vw,64px);
+  --fs-num:clamp(110px,19vw,260px);
+}
+:root[data-theme="dark"] .tag{color:#7fe0a8;background:rgba(12,163,12,.14);border-color:rgba(12,163,12,.32)}
+:root[data-theme="dark"]{
+  --bg-0:#0a0a0b; --bg-1:#101011; --bg-2:#16161a;
+  --ink-1:#f6f6f5; --ink-2:#a3a3a1; --ink-3:#6a6a68; --hair:#232326;
+  --accent:#cde2fb; --scrim:10,10,11; --ghost-op:.16;
+  --num-a:#cde2fb; --num-b:#2a78d6;
+  --warn:#fab219; --crit:#e66767;
+  --btn-bg:#cde2fb; --btn-ink:#0a1626;
 }
 *{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
 body{
-  font-family:"Hiragino Sans","Noto Sans JP",system-ui,sans-serif;
-  background:var(--surface-0); color:var(--ink-1);
-  font-size:13px; line-height:1.5; width:1440px;
+  background:var(--bg-0); color:var(--ink-1);
+  font-family:-apple-system,"SF Pro Display","Hiragino Sans","Noto Sans JP",system-ui,sans-serif;
+  font-size:15px; line-height:1.6; -webkit-font-smoothing:antialiased;
+  font-feature-settings:"palt" 1;
 }
-.wrap{padding:18px 22px 24px}
-.card{background:var(--surface-1);border:1px solid var(--line);border-radius:var(--radius);
-      box-shadow:0 1px 2px rgba(0,0,0,.04),0 6px 16px -8px rgba(0,0,0,.10)}
-h1{font-size:19px;font-weight:800;letter-spacing:-.02em}
-.sub{color:var(--ink-2);font-size:12px}
-.muted{color:var(--ink-3)}
-.sect-t{font-size:12px;font-weight:700;color:var(--ink-2);letter-spacing:.04em}
+section{position:relative}
+.mid{max-width:1180px;margin:0 auto;padding:0 40px}
+.eyebrow{font-size:11px;font-weight:700;letter-spacing:.18em;color:var(--ink-3);text-transform:uppercase}
+.lede{font-size:clamp(15px,1.5vw,19px);color:var(--ink-2);max-width:38em}
+h2{font-size:var(--fs-sect);font-weight:800;letter-spacing:-.035em;line-height:1.12}
+.dim{color:var(--ink-3)}
+.hl{color:var(--accent)}
+.tab{font-variant-numeric:tabular-nums}
 
-/* header */
-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
-.brand{display:flex;align-items:baseline;gap:12px}
-.pill{font-size:11px;font-weight:700;padding:3px 9px;border-radius:999px;
-      background:#e7f0fd;color:#1c5cab;border:1px solid #cde2fb}
-.themebtn{font-size:11px;color:var(--ink-2);border:1px solid var(--line);background:var(--surface-1);
-          padding:6px 12px;border-radius:9px}
+/* スクロールで出す。JS/motion 無効でも読めるよう既定は可視 */
+.rise{opacity:1;transform:none;transition:opacity .9s cubic-bezier(.2,.7,.2,1),transform .9s cubic-bezier(.2,.7,.2,1)}
+body.js .rise{opacity:0;transform:translateY(22px)}
+body.js .rise[data-in]{opacity:1;transform:none}
+@media (prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  body.js .rise{opacity:1!important;transform:none!important;transition:none}
+}
 
-/* input bar */
-.inputbar{display:flex;align-items:center;gap:26px;padding:14px 18px;margin-bottom:14px}
-.field{display:flex;align-items:center;gap:9px}
-.lab{font-size:11px;font-weight:700;color:var(--ink-2)}
-.sel{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line);background:var(--surface-1);
-     border-radius:10px;padding:7px 11px;font-size:13px;font-weight:600;box-shadow:0 1px 1px rgba(0,0,0,.03)}
-.sel::after{content:"▾";color:var(--ink-3);font-size:10px}
-.arrow{color:var(--ink-3)}
-.entry{font-weight:800;font-size:15px;color:#1c5cab}
-.slider{width:190px;height:5px;border-radius:99px;background:linear-gradient(90deg,var(--b3) 42%,var(--surface-2) 42%);position:relative}
-.knob{position:absolute;left:42%;top:50%;transform:translate(-50%,-50%);width:15px;height:15px;border-radius:50%;
-      background:#fff;border:2px solid var(--b3);box-shadow:0 1px 3px rgba(0,0,0,.2)}
-.tval{font-weight:700;font-variant-numeric:tabular-nums}
-".badge-est{font-size:10px;font-weight:700;color:#5c4a1f;background:#fdf6e3;border:1px solid #ecdcb4;
-            padding:2px 8px;border-radius:999px}
-.badge-est.official{color:#1c5cab;background:#eef4fd;border-color:#cde2fb}
-.badge-real{font-size:10px;font-weight:700;color:#0a6b3d;background:#e3f6ec;border:1px solid #bfe8d1;
-            padding:2px 7px;border-radius:999px}
+/* ── S0 hero ── */
+#s0{min-height:100vh;display:flex;align-items:center;overflow:hidden}
+#s0 .ghost{position:absolute;inset:0;display:grid;place-items:center;pointer-events:none}
+#s0 .scrim{position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(115% 78% at 34% 52%,rgba(var(--scrim),.94) 0%,rgba(var(--scrim),.80) 38%,rgba(var(--scrim),.30) 72%,transparent 100%)}
+#s0 .ghost svg{width:132%;max-width:none;opacity:var(--ghost-op);filter:saturate(.7)}
+#s0 .mid{position:relative;z-index:1}
+#s0 h1{font-size:var(--fs-hero);font-weight:800;letter-spacing:-.045em;line-height:1.08;margin:20px 0 26px}
+#s0 h1 em{font-style:normal;color:var(--accent)}
+.scrollhint{position:absolute;left:50%;bottom:34px;transform:translateX(-50%);font-size:11px;color:var(--ink-3);
+  letter-spacing:.14em;display:flex;flex-direction:column;align-items:center;gap:9px}
+.scrollhint i{width:1px;height:34px;background:linear-gradient(var(--ink-3),transparent)}
 
-/* grid */
-.row{display:grid;grid-template-columns:1fr 372px;gap:14px;margin-bottom:14px}
-.pad{padding:14px 16px}
-.hd{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:10px}
+/* ── S1 gap ── */
+#s1{min-height:100vh;display:flex;align-items:center}
+.tl{margin-top:56px;position:relative;height:112px}
+.tl .line{position:absolute;left:0;right:0;top:34px;height:1px;background:var(--hair)}
+.tl .fill{position:absolute;left:0;top:34px;height:1px;background:linear-gradient(90deg,var(--num-a),var(--accent));width:0;transition:width 1.6s ease .2s}
+.tl[data-in] .fill{width:100%}
+.tl .pt{position:absolute;top:22px;width:25px;height:25px;border-radius:50%;background:var(--bg-0);border:1px solid var(--hair);display:grid;place-items:center}
+.tl .pt b{width:7px;height:7px;border-radius:50%;background:var(--ink-3)}
+.tl .pt.on{border-color:var(--accent)} .tl .pt.on b{background:var(--accent)}
+.tl .cap{position:absolute;top:66px;font-size:12px;color:var(--ink-2);white-space:nowrap;transform:translateX(-50%)}
+.tl .yr{position:absolute;top:-8px;font-size:13px;font-weight:700;transform:translateX(-50%);color:var(--ink-3)}
+.tl .yr.on{color:var(--accent)}
 
-/* map */
-.mapwrap{position:relative}
-svg.map{display:block;width:100%;height:auto}
-.mp{stroke:var(--surface-1);stroke-width:.9;cursor:pointer}
-.mp.sel{stroke:#0b0b0b;stroke-width:2.4}
-.legend{display:flex;align-items:center;gap:0;margin-top:8px}
-.lg{height:11px;width:34px}
-.lgl{font-size:10px;color:var(--ink-3);font-variant-numeric:tabular-nums;margin-left:4px}
-.lgnote{display:flex;gap:14px;margin-top:7px;font-size:10px;color:var(--ink-2);align-items:center}
-.sw{width:15px;height:11px;border:1px solid var(--line);display:inline-block;vertical-align:-1px;margin-right:4px}
+/* ── S2 number ── */
+#s2{min-height:100vh;display:flex;align-items:center;text-align:center}
+#s2 .n{font-size:var(--fs-num);font-weight:800;letter-spacing:-.06em;line-height:.86;
+  background:linear-gradient(180deg,var(--num-a),var(--num-b));-webkit-background-clip:text;background-clip:text;color:transparent}
+#s2 .unit{font-size:clamp(20px,2.6vw,34px);font-weight:800;letter-spacing:-.02em;margin-top:14px}
 
-/* ranking */
-.rk{display:flex;align-items:center;gap:9px;padding:4px 0}
-.rk .n{width:16px;text-align:right;color:var(--ink-3);font-size:11px;font-variant-numeric:tabular-nums}
-.rk .nm{width:78px;font-weight:600;font-size:12px}
-.rk .bar{flex:1;height:15px;background:var(--surface-2);border-radius:4px;overflow:hidden}
-.rk .bf{display:block;height:100%;border-radius:4px}
-.rk .v{width:30px;text-align:right;font-weight:700;font-variant-numeric:tabular-nums;font-size:12px}
-.rk.on{background:#eef4fd;margin:0 -8px;padding:4px 8px;border-radius:8px}
+/* ── S3 scroll-driven map ── */
+#s3{height:340vh}
+#s3 .stick{position:sticky;top:0;height:100vh;display:grid;place-items:center;overflow:hidden}
+#s3 .yrbig{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+  font-size:clamp(150px,26vw,380px);font-weight:800;letter-spacing:-.06em;color:var(--ink-1);opacity:.06;pointer-events:none}
+#s3 svg{width:min(96vw,1180px);height:auto}
+#s3 .cap{position:absolute;left:0;right:0;bottom:8vh;text-align:center}
+#s3 .cap .y{font-size:13px;font-weight:700;color:var(--accent);letter-spacing:.1em}
+#s3 .cap .t{font-size:clamp(17px,2vw,26px);font-weight:700;margin-top:8px;letter-spacing:-.02em}
+#s3 .steps{position:absolute;inset:0}
+#s3 .step{height:100vh}
+
+/* ── S4 tool ── */
+#s4{background:var(--bg-1);padding:120px 0 130px}
+.tool-hd{display:flex;align-items:flex-end;justify-content:space-between;gap:30px;margin-bottom:38px}
+.ctl{display:flex;align-items:center;gap:26px;flex-wrap:wrap;padding:18px 0 26px;border-bottom:1px solid var(--hair)}
+.ctl .g{display:flex;align-items:center;gap:9px}
+.k{font-size:11px;color:var(--ink-3);font-weight:700;letter-spacing:.04em}
+.pick{appearance:none;background:var(--bg-2);border:1px solid var(--hair);color:var(--ink-1);
+  border-radius:9px;padding:8px 30px 8px 12px;font:inherit;font-size:14px;font-weight:600;
+  background-image:linear-gradient(45deg,transparent 50%,var(--ink-3) 50%),linear-gradient(135deg,var(--ink-3) 50%,transparent 50%);
+  background-position:calc(100% - 15px) 52%,calc(100% - 10px) 52%;background-size:5px 5px;background-repeat:no-repeat}
+.eq{font-size:20px;font-weight:800;letter-spacing:-.02em;color:var(--accent)}
+.rng{-webkit-appearance:none;width:170px;height:3px;border-radius:9px;background:var(--hair);outline:0}
+.rng::-webkit-slider-thumb{-webkit-appearance:none;width:15px;height:15px;border-radius:50%;background:var(--accent);cursor:pointer}
+.tag{font-size:10px;font-weight:700;color:#0a6b3d;background:rgba(12,163,12,.10);border:1px solid rgba(12,163,12,.28);padding:2px 8px;border-radius:999px}
+
+.stage{display:grid;grid-template-columns:1fr 300px;gap:44px;align-items:start}
+.mapbox{position:relative}
+.mapbox svg{width:100%;height:auto;display:block;cursor:grab;touch-action:none}
+.mapbox svg:active{cursor:grabbing}
+.mp{stroke:var(--bg-1);stroke-width:.7;vector-effect:non-scaling-stroke}
+.mp.sel{stroke:var(--ink-1);stroke-width:2;vector-effect:non-scaling-stroke}
+.zoombar{position:absolute;right:0;top:0;display:flex;gap:6px}
+.zb{background:var(--bg-2);border:1px solid var(--hair);color:var(--ink-2);border-radius:8px;
+  padding:6px 11px;font:inherit;font-size:11px;font-weight:700;cursor:pointer}
+.zb:hover{color:var(--ink-1);border-color:var(--ink-3)}
+.legend{display:flex;align-items:center;gap:7px;margin-top:10px;font-size:11px;color:var(--ink-3)}
+.legend .bar{display:flex;border-radius:3px;overflow:hidden}
+.legend .bar i{width:30px;height:8px}
+.hint{margin-top:7px;font-size:11px;color:var(--ink-3)}
+
+.rank{display:flex;flex-direction:column;gap:2px}
+.rr{display:grid;grid-template-columns:15px 1fr 30px;align-items:center;gap:10px;padding:7px 9px;border-radius:9px;cursor:pointer}
+.rr:hover{background:var(--bg-2)}
+.rr.on{background:var(--bg-2)}
+.rr .i{font-size:11px;color:var(--ink-3);text-align:right}
+.rr .nm{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rr .v{font-size:14px;font-weight:800;text-align:right}
+.rr .sp{grid-column:2/4;height:2px;background:var(--hair);border-radius:9px;margin-top:-2px}
+.rr .sp i{display:block;height:100%;border-radius:9px}
+
+/* selected detail — 箱を使わず、巨大な数字ひとつ */
+.detail{margin-top:78px;padding-top:44px;border-top:1px solid var(--hair)}
+.detail .who{font-size:13px;font-weight:700;color:var(--accent);letter-spacing:.06em}
+.detail .big{font-size:clamp(64px,9vw,132px);font-weight:800;letter-spacing:-.05em;line-height:1;margin:10px 0 4px}
+.detail .big small{font-size:.28em;font-weight:700;letter-spacing:-.01em;margin-left:10px;color:var(--ink-2)}
+.facts{display:flex;gap:34px;flex-wrap:wrap;margin-top:22px;font-size:13px;color:var(--ink-2)}
+.facts b{color:var(--ink-1);font-weight:700}
+.notice{margin-top:26px;font-size:13px;color:var(--ink-2);max-width:56em;display:flex;gap:10px}
+.notice .ic{color:var(--warn);font-weight:800}
+details.more{margin-top:8px}
+details.more summary{cursor:pointer;font-size:12px;color:var(--accent);list-style:none}
+details.more summary::-webkit-details-marker{display:none}
+details.more p{margin-top:8px;font-size:12.5px;color:var(--ink-3);max-width:56em}
+.acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:26px}
+.act{border:1px solid var(--hair);border-radius:999px;padding:7px 14px;font-size:12.5px;color:var(--ink-2);cursor:pointer}
+.act:hover{border-color:var(--ink-3);color:var(--ink-1)}
+.act b{color:var(--ink-1)}
 
 /* heatmap */
-.hm{overflow:hidden}
-.hmg{display:grid;grid-template-columns:78px repeat(12,1fr);gap:2px;align-items:center}
-.hmh{font-size:9.5px;color:var(--ink-3);text-align:center;font-variant-numeric:tabular-nums;padding-bottom:3px}
-.hmn{font-size:11px;font-weight:600;text-align:right;padding-right:7px;white-space:nowrap;overflow:hidden}
-.cell{height:17px;border-radius:3px;font-size:9px;color:#fff;display:flex;align-items:center;justify-content:center;
-      font-variant-numeric:tabular-nums;font-weight:600}
-.cell.lo{color:#20344d}
-.hmrow.on .hmn{color:#1c5cab;font-weight:800}
-.bridge-line{grid-column:8/9;height:0}
+.hm{margin-top:78px;padding-top:44px;border-top:1px solid var(--hair)}
+.hmhd{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:18px}
+.grid{display:grid;grid-template-columns:74px repeat(12,1fr);gap:3px;align-items:center}
+.gh{font-size:10px;color:var(--ink-3);text-align:center}
+.gh.br{color:var(--accent);font-weight:700}
+.gn{font-size:12px;color:var(--ink-2);text-align:right;padding-right:8px;white-space:nowrap}
+.gn.on{color:var(--accent);font-weight:700}
+.c{height:19px;border-radius:3px;font-size:9.5px;font-weight:700;display:flex;align-items:center;justify-content:center}
+.c.br{background-image:repeating-linear-gradient(45deg,rgba(var(--scrim),.40) 0 1px,transparent 1px 5px)}
+.more-btn{background:none;border:1px solid var(--hair);color:var(--ink-2);border-radius:999px;padding:6px 14px;font:inherit;font-size:12px;cursor:pointer}
 
-/* detail */
-.kpi{display:flex;gap:10px;margin:10px 0 12px}
-.kb{flex:1;border:1px solid var(--line);border-radius:11px;padding:9px 11px;background:var(--surface-1)}
-.kb .k{font-size:10px;color:var(--ink-3);font-weight:700}
-.kb .v{font-size:19px;font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
-.kb .u{font-size:11px;font-weight:600;color:var(--ink-2)}
-.note{display:flex;gap:9px;border-radius:11px;padding:10px 12px;font-size:11.5px;line-height:1.6}
-.note.real{background:#fff6e6;border:1px solid #f6dfae}
-.note.brk{background:#f3f3f0;border:1px solid var(--line)}
-.note .ic{font-weight:800;flex:none}
-.act{margin-top:11px}
-.chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--surface-1);
-      border-radius:999px;padding:5px 11px;font-size:11.5px;margin:4px 5px 0 0}
-.chip b{font-variant-numeric:tabular-nums}
+/* scenario */
+.scen{margin-top:78px;padding-top:44px;border-top:1px solid var(--hair);display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.scen input{flex:1;min-width:280px;background:var(--bg-2);border:1px solid var(--hair);color:var(--ink-1);
+  border-radius:11px;padding:13px 16px;font:inherit;font-size:14px}
+.scen button{background:var(--btn-bg);color:var(--btn-ink);border:0;border-radius:11px;padding:13px 24px;font:inherit;font-size:14px;font-weight:800;cursor:pointer}
 
-/* scenario + sources */
-.scen{display:flex;gap:10px;align-items:center;padding:12px 16px}
-.scen input{flex:1;border:1px solid var(--line);border-radius:10px;padding:9px 12px;font-size:12.5px;
-            font-family:inherit;background:var(--surface-1);color:var(--ink-2)}
-.btn{background:#1c5cab;color:#fff;border:0;border-radius:10px;padding:9px 18px;font-size:12.5px;font-weight:700}
-.src{padding:11px 16px;font-size:10px;color:var(--ink-3);line-height:1.7;margin-top:14px}
-.empty{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;
-       color:var(--ink-3);text-align:center;padding:34px 20px}
-.empty .big{font-size:13px;font-weight:700;color:var(--ink-2)}
+/* ── S5 evidence + sources ── */
+#s5{background:var(--bg-0);padding:120px 0 90px;border-top:1px solid var(--hair)}
+.ev{display:grid;grid-template-columns:repeat(3,1fr);gap:40px;margin:44px 0 70px}
+.ev .n{font-size:clamp(30px,3.4vw,48px);font-weight:800;letter-spacing:-.03em}
+.ev .l{font-size:12px;color:var(--ink-3);margin-top:6px}
+.src{font-size:11.5px;color:var(--ink-3);line-height:1.9;border-top:1px solid var(--hair);padding-top:28px}
+.src b{color:var(--ink-2);font-weight:700}
 </style>
 
-<div class="wrap">
-<header>
-  <div class="brand">
-    <h1>小1の壁マップ</h1>
-    <span class="sub">保育園には入れた。でも小1で詰んだ — を、家を決める前に防ぐ</span>
+<!-- ══ S0 ══ -->
+<section id="s0">
+  <div class="ghost" aria-hidden="true"><svg id="ghost" viewBox="0 0 900 400"></svg></div>
+  <div class="scrim" aria-hidden="true"></div>
+  <div class="mid">
+    <p class="eyebrow rise">東京都オープンデータ ／ 49自治体</p>
+    <h1 class="rise">保育園には、入れた。<br><em>でも、小1で詰んだ。</em></h1>
+    <p class="lede rise">学童に入れないと、親のどちらかが働き方を変えることになる。<br>
+      そしてそれは、家を決めたあとでは動かせない。</p>
   </div>
-  <div style="display:flex;gap:9px;align-items:center">
-    <span class="pill">東京都 23区＋多摩26市</span>
-    <span class="themebtn">◐ テーマ</span>
+  <div class="scrollhint"><span>SCROLL</span><i></i></div>
+</section>
+
+<!-- ══ S1 ══ -->
+<section id="s1"><div class="mid">
+  <h2 class="rise">家を決めるのは、いま。<br><span class="dim">詰むのは、6年後。</span></h2>
+  <div class="tl rise" id="tl">
+    <div class="line"></div><div class="fill"></div>
+    <div class="pt on" style="left:0"><b></b></div><div class="yr on" style="left:12px">2026</div>
+    <div class="cap" style="left:60px">0歳。家を買う</div>
+    <div class="pt on" style="left:calc(100% - 25px)"><b></b></div><div class="yr on" style="left:calc(100% - 12px)">2031</div>
+    <div class="cap" style="left:calc(100% - 62px)">小1。学童に入れない</div>
   </div>
-</header>
+  <p class="lede rise" style="margin-top:52px">不動産サイトも区役所も、答えるのは<span class="hl">今年の</span>待機児童数だけ。</p>
+</div></section>
 
-<div class="card inputbar">
-  <div class="field"><span class="lab">子の生まれ</span>
-    <span class="sel" id="by">2024年</span><span class="sel" id="bm">6月</span></div>
-  <div class="field"><span class="arrow">→</span><span class="lab">小1になるのは</span>
-    <span class="entry" id="fy">2031年度</span></div>
-  <div style="width:1px;height:26px;background:var(--line)"></div>
-  <div class="field"><span class="lab">仮定：学童の登録率は毎年</span>
-    <div class="slider"><div class="knob"></div></div>
-    <span class="tval">+0.84pt</span><span class="lab">上昇</span>
-    <span class="badge-real">実測値</span></div>
-</div>
+<!-- ══ S2 ══ -->
+<section id="s2"><div class="mid" style="width:100%">
+  <p class="eyebrow rise">中央区 ／ 2031年度の予測</p>
+  <div class="n rise tab" id="bigNum">899</div>
+  <div class="unit rise">人分、足りない。</div>
+  <p class="lede rise" style="margin:26px auto 0">需要 2,190人 に対して、いまの受け入れ実績は 1,291人。</p>
+</div></section>
 
-<div class="row">
-  <div class="card pad mapwrap">
-    <div class="hd"><span class="sect-t">2031年度の学童リスク</span>
-      <span style="display:flex;gap:10px;align-items:center">
-        <span class="badge-est" id="basisBadge"></span>
-        <span class="muted" style="font-size:11px">濃いほど「申し込んでも入れない人」の割合が高い</span></span></div>
-    <svg class="map" id="map" viewBox="0 0 900 400"></svg>
-    <div class="legend" id="legend"></div>
-    <div class="lgnote">
-      <span><i class="sw" style="background:repeating-linear-gradient(45deg,#cfd6e4 0 2px,#eef1f6 2px 5px)"></i>下のヒートマップ：斜線＝公式推計を接続した推定（2031年度以降）</span>
-      <span><i class="sw" style="background:repeating-linear-gradient(45deg,#dcdcd8 0 3px,#f0f0ec 3px 6px)"></i>データなし</span>
-      <span id="brknote"></span>
+<!-- ══ S3 ══ -->
+<section id="s3">
+  <div class="stick">
+    <div class="yrbig tab" id="yrBig">2027</div>
+    <svg id="storyMap" viewBox="0 0 900 400" aria-hidden="true"></svg>
+    <div class="cap"><div class="y tab" id="capY">2027年度</div><div class="t" id="capT">いまはまだ、ほとんどの区が足りている。</div></div>
+  </div>
+  <div class="steps" id="steps"><div class="step" data-y="2027"></div><div class="step" data-y="2031"></div><div class="step" data-y="2038"></div></div>
+</section>
+
+<!-- ══ S4 ══ -->
+<section id="s4"><div class="mid">
+  <div class="tool-hd rise">
+    <h2 style="font-size:clamp(26px,3vw,42px)">あなたの子の年で、調べる。</h2>
+  </div>
+
+  <div class="ctl rise">
+    <div class="g"><span class="k">子の生まれ</span>
+      <select class="pick" id="by"></select><select class="pick" id="bm"></select></div>
+    <div class="g"><span class="k">小1になるのは</span><span class="eq tab" id="fy">2031年度</span></div>
+    <div class="g" style="margin-left:auto"><span class="k">登録率は毎年</span>
+      <input class="rng" id="tr" type="range" min="0" max="20" value="8.4" step="0.2">
+      <span class="eq tab" id="trv">+0.84pt</span><span class="tag">実測値</span></div>
+  </div>
+
+  <div class="stage rise" style="margin-top:34px">
+    <div class="mapbox">
+      <div class="zoombar">
+        <button class="zb" id="zKu">23区へ</button><button class="zb" id="zAll">全体</button>
+      </div>
+      <svg id="map" viewBox="0 0 900 400"></svg>
+      <div class="legend"><span>低</span><span class="bar" id="lg"></span><span>高</span>
+        <span style="margin-left:12px" id="basisTag"></span></div>
+      <p class="hint">スクロールで拡大・ドラッグで移動・ダブルクリックで戻る</p>
+    </div>
+    <div>
+      <p class="k" style="margin-bottom:12px">リスクの高い自治体</p>
+      <div class="rank" id="rank"></div>
     </div>
   </div>
 
-  <div class="card pad">
-    <div class="hd"><span class="sect-t">リスクの高い自治体（2031年度）</span>
-      <span class="muted" style="font-size:10px">面積の大小に左右されない順位</span></div>
-    <div id="rank"></div>
+  <div class="detail rise" id="detail"></div>
+
+  <div class="hm rise">
+    <div class="hmhd"><p class="k">いつ悪化するか</p><button class="more-btn" id="expand">49自治体すべて</button></div>
+    <div class="grid" id="grid"></div>
   </div>
-</div>
 
-<div class="card pad hm" style="margin-bottom:14px">
-  <div class="hd"><span class="sect-t">いつ悪化するか — 49自治体 × 入学年度</span>
-    <span class="muted" style="font-size:11px">縦＝自治体（リスク順）／横＝子が小1になる年度</span></div>
-  <div class="hmg" id="hm"></div>
-</div>
+  <div class="scen rise">
+    <input id="scenIn" value="駅前に600戸のマンションが2028年に完成する">
+    <button>計算する</button>
+  </div>
+</div></section>
 
-<div id="detailSlot"></div>
-
-<div class="card scen">
-  <span class="sect-t" style="flex:none">シナリオ</span>
-  <input value="駅前に600戸のマンションが2028年に完成する" readonly>
-  <button class="btn">計算する</button>
-</div>
-
-<div class="card src">
-  出典：東京都オープンデータカタログサイト「教育人口等推計」（東京都教育庁）／「公立学校統計調査報告書【東京都公立学校一覧】」（東京都教育庁）／「学童クラブ事業の区市町村別実施状況」（東京都福祉局）　いずれも クリエイティブ・コモンズ 表示 4.0（CC BY 4.0）／2026-08-22 取得<br>
-  地図の区市町村境界：「国土数値情報（行政区域データ）」（国土交通省）を加工して作成　　本サービスは上記データを加工して作成しています。
-</div>
-</div>
+<!-- ══ S5 ══ -->
+<section id="s5"><div class="mid">
+  <p class="eyebrow rise">根拠</p>
+  <h2 class="rise" style="font-size:clamp(26px,3vw,42px);margin-top:14px">この予測が、どれくらい当たるか。</h2>
+  <div class="ev">
+    <div class="rise"><div class="n tab">1.51<small style="font-size:.5em">%</small></div>
+      <div class="l">2年先の絶対誤差平均。令和5年度版の推計と令和7年度実数を57地区で突き合わせた実測</div></div>
+    <div class="rise"><div class="n tab">+0.84<small style="font-size:.5em">pt</small></div>
+      <div class="l">登録率の年あたり上昇。48自治体中45が上昇（2023-05→2025-05 実測）</div></div>
+    <div class="rise"><div class="n tab">9<small style="font-size:.5em">件</small></div>
+      <div class="l">使用データセット。うち8件が東京都オープンデータカタログ掲載（CC BY 4.0）</div></div>
+  </div>
+  <p class="lede rise" style="margin-bottom:34px">誤差を実測できるのは1年先と2年先だけです（推計が3世代しかないため）。
+    2031年度以降は、都の公式推計どうしを接続した推定であることを画面に明示しています。</p>
+  <div class="src rise">
+    <b>出典</b>　東京都オープンデータカタログサイト「教育人口等推計」（東京都教育庁）／「公立学校統計調査報告書【東京都公立学校一覧】」（東京都教育庁）／「学童クラブ事業の区市町村別実施状況」（東京都福祉局）／「社会福祉施設等一覧」（東京都福祉局）　いずれも クリエイティブ・コモンズ 表示 4.0（CC BY 4.0）／2026-08-22 取得<br>
+    <b>地図</b>　「国土数値情報（行政区域データ）」（国土交通省）を加工して作成<br>
+    本サービスは上記データを加工して作成しています。
+  </div>
+</div></section>
 
 <script type="module">
-const state = new URLSearchParams(location.search).get('state') || 'selected';
-const SEL = '中央区';
+document.body.classList.add('js');
+const THEME = new URLSearchParams(location.search).get('theme') || 'light';
+document.documentElement.dataset.theme = THEME;
 const D = await (await fetch('./mock-data.json')).json();
 const TOPO = await (await fetch('../../data/geo/tokyo-49.topo.json')).json();
-const BINS = D.bins, RAMP = ['#86b6ef','#5598e7','#2a78d6','#1c5cab','#0d366b'];
+/* 明るい面：低=淡く沈む / 高=濃く沈み込む（検証器 PASS・surface #fcfcfb）
+   暗い面  ：低=沈む   / 高=光る       （同じ5色を反転。こちらも PASS）
+   セルの文字色はランプの明度に合わせて対で持つ。 */
+const PALETTE = {
+  light:{ ramp:['#86b6ef','#5598e7','#2a78d6','#1c5cab','#0d366b'],
+          ink :['#0b2542','#0b2542','#ffffff','#ffffff','#ffffff'], nodata:'#ececE8' },
+  dark :{ ramp:['#184f95','#2a78d6','#6da7ec','#9ec5f4','#cde2fb'],
+          ink :['#cfe3fb','#cfe3fb','#0a0a0b','#0a0a0b','#0a0a0b'], nodata:'#1e1e22' },
+}[THEME];
+const RAMP = PALETTE.ramp;
+const binOf = s => Math.max(0, BINS.filter(b=>s>=b).length-1);
+const BINS = D.bins;
 const at = (m,y)=>D.cells.find(c=>c.muni===m&&c.year===y);
-const colorOf = s => s==null ? null : RAMP[Math.max(0,BINS.filter(b=>s>=b).length-1)];
+const col = s => s==null?null:RAMP[binOf(s)];
 const fmt = n => n==null?'—':Math.round(n).toLocaleString('ja-JP');
 
-/* ---- TopoJSON → SVG path（メルカトル・自前実装） ---- */
-const {scale:[sx,sy],translate:[tx,ty]} = TOPO.transform;
-const arcs = TOPO.arcs.map(a=>{let x=0,y=0;return a.map(([dx,dy])=>{x+=dx;y+=dy;return [x*sx+tx,y*sy+ty];});});
-const merc = ([lon,lat])=>[lon*Math.PI/180, Math.log(Math.tan(Math.PI/4+lat*Math.PI/360))];
-const ringOf = idxs => idxs.flatMap((i,k)=>{const a=i<0?arcs[~i].slice().reverse():arcs[i];return k?a.slice(1):a;});
-const polysOf = g => g.type==='Polygon' ? [g.arcs] : g.arcs;
-const feats = TOPO.objects.tokyo.geometries.map(g=>({
-  code:g.properties.code, name:g.properties.name,
-  polys: polysOf(g).map(p=>p.map(r=>ringOf(r).map(merc)))
-}));
-const all = feats.flatMap(f=>f.polys.flat(2));
-const X=all.map(p=>p[0]), Y=all.map(p=>p[1]);
-const bb={x0:Math.min(...X),x1:Math.max(...X),y0:Math.min(...Y),y1:Math.max(...Y)};
-const W=900,H=400,PAD=10;
-const k=Math.min((W-2*PAD)/(bb.x1-bb.x0),(H-2*PAD)/(bb.y1-bb.y0));
-const ox=(W-(bb.x1-bb.x0)*k)/2, oy=(H-(bb.y1-bb.y0)*k)/2;
-const prj = ([x,y])=>[ (x-bb.x0)*k+ox, (bb.y1-y)*k+oy ];
-const dOf = f => f.polys.map(poly=>poly.map(ring=>
-  'M'+ring.map(prj).map(([a,b])=>a.toFixed(1)+','+b.toFixed(1)).join('L')+'Z').join('')).join('');
+/* ---- TopoJSON → path（メルカトル・自前） ---- */
+const {scale:[sx,sy],translate:[tx,ty]}=TOPO.transform;
+const arcs=TOPO.arcs.map(a=>{let x=0,y=0;return a.map(([dx,dy])=>{x+=dx;y+=dy;return[x*sx+tx,y*sy+ty];});});
+const merc=([lo,la])=>[lo*Math.PI/180,Math.log(Math.tan(Math.PI/4+la*Math.PI/360))];
+const ring=i=>i.flatMap((k,n)=>{const a=k<0?arcs[~k].slice().reverse():arcs[k];return n?a.slice(1):a;});
+const F=TOPO.objects.tokyo.geometries.map(g=>({code:g.properties.code,name:g.properties.name,
+  polys:(g.type==='Polygon'?[g.arcs]:g.arcs).map(p=>p.map(r=>ring(r).map(merc)))}));
+const pts=F.flatMap(f=>f.polys.flat(2));
+const b={x0:Math.min(...pts.map(p=>p[0])),x1:Math.max(...pts.map(p=>p[0])),
+         y0:Math.min(...pts.map(p=>p[1])),y1:Math.max(...pts.map(p=>p[1]))};
+const W=900,H=400,PAD=12;
+const k0=Math.min((W-2*PAD)/(b.x1-b.x0),(H-2*PAD)/(b.y1-b.y0));
+const ox=(W-(b.x1-b.x0)*k0)/2, oy=(H-(b.y1-b.y0)*k0)/2;
+const prj=([x,y])=>[(x-b.x0)*k0+ox,(b.y1-y)*k0+oy];
+const dOf=f=>f.polys.map(p=>p.map(r=>'M'+r.map(prj).map(([a,c])=>a.toFixed(1)+','+c.toFixed(1)).join('L')+'Z').join('')).join('');
+const PATHS=Object.fromEntries(F.map(f=>[f.name,dOf(f)]));
+const bboxOf=names=>{const P=F.filter(f=>names.includes(f.name)).flatMap(f=>f.polys.flat(2)).map(prj);
+  return {x:Math.min(...P.map(p=>p[0])),y:Math.min(...P.map(p=>p[1])),
+          w:Math.max(...P.map(p=>p[0]))-Math.min(...P.map(p=>p[0])),
+          h:Math.max(...P.map(p=>p[1]))-Math.min(...P.map(p=>p[1]))};};
+const KU=F.filter(f=>f.name.endsWith('区')).map(f=>f.name);
 
-const svg=document.getElementById('map');
-svg.innerHTML = `<defs>
-  <pattern id="brg" width="6" height="6" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">
-    <rect width="6" height="6" fill="none"/><line x1="0" y1="0" x2="0" y2="6" stroke="#fcfcfb" stroke-width="2.1" opacity=".55"/></pattern>
-  <pattern id="nod" width="6" height="6" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">
-    <rect width="6" height="6" fill="#f0f0ec"/><line x1="0" y1="0" x2="0" y2="6" stroke="#d6d6d1" stroke-width="2.1"/></pattern>
-</defs>` + feats.map(f=>{
-  const c=at(f.name,D.focusYear); const col=c?colorOf(c.score):null;
-  const isSel = state==='selected' && f.name===SEL;
-  // 地図は単一年度なので basis は全セル共通。全面に斜線を敷くと意味を失うため、
-  // 見出しのバッジで1回だけ示す（斜線は official と bridged が同居するヒートマップで使う）
-  return `<path class="mp${isSel?' sel':''}" d="${dOf(f)}" fill="${col||'url(#nod)'}"
-    role="img" aria-label="${f.name} リスク${c&&c.score!=null?c.score:'データなし'}"></path>`;
-}).join('') + (state==='selected' ? (()=>{ // 選択中のラベル
-  const f=feats.find(x=>x.name===SEL); const pts=f.polys.flat(2).map(prj);
-  const cx=pts.reduce((a,p)=>a+p[0],0)/pts.length, cy=pts.reduce((a,p)=>a+p[1],0)/pts.length;
-  const s=at(SEL,D.focusYear).score;
-  return `<g transform="translate(${cx+14},${cy-46})">
-    <rect x="0" y="0" rx="7" width="150" height="40" fill="#0b0b0b" opacity=".92"/>
-    <text x="11" y="17" fill="#fff" font-size="12" font-weight="700">${SEL}</text>
-    <text x="11" y="32" fill="#c9c9c4" font-size="10.5">リスク ${s}／不足 ${fmt(at(SEL,D.focusYear).gap)}人</text>
-    <line x1="0" y1="40" x2="-8" y2="52" stroke="#0b0b0b" stroke-width="2" opacity=".92"/></g>`;
-})() : '');
+const paint=(svg,year,sel)=>{svg.innerHTML=F.map(f=>{const c=at(f.name,year);const fill=c?col(c.score):PALETTE.nodata;
+  return `<path class="mp${sel===f.name?' sel':''}" data-m="${f.name}" d="${PATHS[f.name]}" fill="${fill}"
+   role="img" aria-label="${f.name} リスク${c&&c.score!=null?Math.round(c.score):'データなし'}"></path>`;}).join('');};
 
-document.getElementById('legend').innerHTML =
-  '<span class="lgl" style="margin-right:6px">低</span>' +
-  RAMP.map((c,i)=>`<div class="lg" style="background:${c};${i===0?'border-radius:3px 0 0 3px':''}${i===4?'border-radius:0 3px 3px 0':''}"></div>`).join('')
-  + '<span class="lgl">高</span>'
-  + `<span class="lgl" style="margin-left:10px">${BINS.map((b,i)=>i?b:'0').join(' · ')}</span>`;
-const fb = at('中央区',D.focusYear).basis;
-const bb2 = document.getElementById('basisBadge');
-bb2.textContent = fb==='bridged'
-  ? `${D.focusYear}年度は都の公式推計（〜2030年度）を全都の伸びで接続した推定`
-  : `${D.focusYear}年度は都の公式推計そのもの`;
-bb2.className = 'badge-est' + (fb==='official'?' official':'');
+/* ---- S0 ghost / S3 story ---- */
+paint(document.getElementById('ghost'),2038,null);
+const story=document.getElementById('storyMap'); paint(story,2027,null);
+const CAPS={2027:'いまはまだ、ほとんどの区が足りている。',
+            2031:'あなたの子が小1になる年。中央区で899人分。',
+            2038:'受け皿が変わらなければ、ここまで広がる。'};
+const io3=new IntersectionObserver(es=>{es.forEach(e=>{if(!e.isIntersecting)return;
+  const y=+e.target.dataset.y; paint(story,y,null);
+  document.getElementById('yrBig').textContent=y;
+  document.getElementById('capY').textContent=y+'年度';
+  document.getElementById('capT').textContent=CAPS[y];});},{rootMargin:'-50% 0px -50% 0px'});
+document.querySelectorAll('#steps .step').forEach(s=>io3.observe(s));
 
-document.getElementById('brknote').innerHTML =
-  '<b style="color:#52514e">江戸川区</b>：制度の計上方法が2023↔2025で変わったため、トレンド算出からのみ除外（スコアには含む）';
+/* ---- rise ---- */
+const io=new IntersectionObserver(es=>es.forEach(e=>e.isIntersecting&&e.target.setAttribute('data-in','')),{threshold:.18});
+document.querySelectorAll('.rise').forEach(e=>io.observe(e));
 
-/* ---- ランキング ---- */
-const top = D.munisOrder.slice(0,11);
-document.getElementById('rank').innerHTML = top.map((m,i)=>{
-  const c=at(m,D.focusYear), col=colorOf(c.score);
-  const on = state==='selected' && m===SEL;
-  return `<div class="rk${on?' on':''}"><span class="n">${i+1}</span><span class="nm">${m}</span>
-   <span class="bar"><span class="bf" style="width:${Math.max(3,c.score/45*100)}%;background:${col}"></span></span>
-   <span class="v">${Math.round(c.score)}</span></div>`;
-}).join('');
+/* ---- S4 state ---- */
+let SEL='中央区', FY=D.focusYear, TREND=D.trend;
+const byS=document.getElementById('by'), bmS=document.getElementById('bm');
+for(let y=2019;y<=2031;y++) byS.append(new Option(y+'年',y,y===2024,y===2024));
+for(let m=1;m<=12;m++) bmS.append(new Option(m+'月',m,m===6,m===6));
+const entryYearOf=(y,m)=>y+(m>=4?7:6);
 
-/* ---- ヒートマップ ---- */
-const rows = D.munisOrder.slice(0,14);
-let hm = '<div></div>' + D.years.map(y=>`<div class="hmh"${y===D.bridgeFrom?' style="color:#1c5cab;font-weight:700"':''}>${String(y).slice(2)}</div>`).join('');
-for(const m of rows){
-  const on = state==='selected' && m===SEL;
-  hm += `<div class="hmrow${on?' on':''}" style="display:contents"><div class="hmn"${on?' style="color:#1c5cab;font-weight:800"':''}>${m}</div>`;
-  for(const y of D.years){
-    const c=at(m,y);
-    if(c.score==null){ hm+='<div class="cell" style="background:url(#nod);background:#f0f0ec"></div>'; continue; }
-    const col=colorOf(c.score);
-    const brg = c.basis==='bridged'
-      ? `background-image:repeating-linear-gradient(45deg,rgba(252,252,251,.30) 0 1px,transparent 1px 5px);`:'';
-    hm += `<div class="cell${c.score<25?' lo':''}" style="background-color:${col};${brg}">${Math.round(c.score)}</div>`;
-  }
-  hm += '</div>';
+const map=document.getElementById('map');
+let vb={x:0,y:0,w:W,h:H};
+const applyVb=()=>map.setAttribute('viewBox',`${vb.x} ${vb.y} ${vb.w} ${vb.h}`);
+const clampVb=()=>{vb.w=Math.min(Math.max(vb.w,W/9),W);vb.h=vb.w*H/W;
+  vb.x=Math.min(Math.max(vb.x,0),W-vb.w);vb.y=Math.min(Math.max(vb.y,0),H-vb.h);};
+map.addEventListener('wheel',e=>{e.preventDefault();const r=map.getBoundingClientRect();
+  const px=vb.x+(e.clientX-r.left)/r.width*vb.w, py=vb.y+(e.clientY-r.top)/r.height*vb.h;
+  const f=e.deltaY<0?0.86:1/0.86, nw=vb.w*f, nh=nw*H/W;
+  vb={x:px-(px-vb.x)*nw/vb.w, y:py-(py-vb.y)*nh/vb.h, w:nw, h:nh}; clampVb(); applyVb();},{passive:false});
+let drag=null;
+map.addEventListener('pointerdown',e=>{drag={x:e.clientX,y:e.clientY,vx:vb.x,vy:vb.y};map.setPointerCapture(e.pointerId);});
+map.addEventListener('pointermove',e=>{if(!drag)return;const r=map.getBoundingClientRect();
+  vb.x=drag.vx-(e.clientX-drag.x)/r.width*vb.w; vb.y=drag.vy-(e.clientY-drag.y)/r.height*vb.h; clampVb(); applyVb();});
+map.addEventListener('pointerup',()=>drag=null);
+map.addEventListener('dblclick',()=>{vb={x:0,y:0,w:W,h:H};applyVb();});
+const zoomTo=box=>{const pad=14;const w=Math.max(box.w+pad*2,(box.h+pad*2)*W/H);
+  vb={x:box.x-pad-(w-box.w-pad*2)/2, y:box.y+box.h/2-(w*H/W)/2, w, h:w*H/W}; clampVb(); applyVb();};
+document.getElementById('zKu').onclick=()=>zoomTo(bboxOf(KU));
+document.getElementById('zAll').onclick=()=>{vb={x:0,y:0,w:W,h:H};applyVb();};
+map.addEventListener('click',e=>{const m=e.target.dataset?.m; if(m){SEL=m;render();}});
+
+document.getElementById('lg').innerHTML=RAMP.map(c=>`<i style="background:${c}"></i>`).join('');
+const NB={'中央区':['千代田区','港区','江東区','台東区','墨田区']};
+let EXPANDED=false;
+document.getElementById('expand').onclick=e=>{EXPANDED=!EXPANDED;e.target.textContent=EXPANDED?'上位10件に戻す':'49自治体すべて';render();};
+
+function render(){
+  FY=entryYearOf(+byS.value,+bmS.value);
+  document.getElementById('fy').textContent=FY+'年度';
+  document.getElementById('trv').textContent='+'+(TREND*100).toFixed(2)+'pt';
+  paint(map,FY,SEL); applyVb();
+  const c0=at(SEL,FY);
+  document.getElementById('basisTag').innerHTML = c0 && c0.basis==='bridged'
+    ? `<span title="区市町村別の都の公式推計は2030年度まで。それ以降は全都の公式推計の伸びで接続した推定です。" style="border-bottom:1px dotted var(--ink-3);cursor:help">推定</span>`
+    : `<span title="区市町村別の都の公式推計そのものです。">公式</span>`;
+
+  const order=D.munisOrder;
+  document.getElementById('rank').innerHTML=order.slice(0,10).map((m,i)=>{const c=at(m,FY);
+    return `<div class="rr${m===SEL?' on':''}" data-m="${m}"><span class="i tab">${i+1}</span>
+     <span class="nm">${m}</span><span class="v tab">${Math.round(c.score)}</span>
+     <span class="sp"><i style="width:${Math.max(2,c.score/45*100)}%;background:${col(c.score)}"></i></span></div>`;}).join('');
+  document.querySelectorAll('.rr').forEach(el=>el.onclick=()=>{SEL=el.dataset.m;render();});
+
+  const mu=D.munis.find(x=>x.name===SEL), g=mu.gakudo['2025-05-01'], c=at(SEL,FY);
+  const nb=(NB[SEL]||order.slice(0,6).filter(n=>n!==SEL)).map(n=>({n,s:at(n,FY)?.score}))
+            .filter(x=>x.s!=null).sort((a,b)=>a.s-b.s).slice(0,3);
+  document.getElementById('detail').innerHTML=`
+    <p class="who">${SEL}　${FY}年度</p>
+    <div class="big tab">${fmt(c.gap)}<small>人分、足りない</small></div>
+    <div class="facts"><span>需要 <b class="tab">${fmt(c.demand)}</b> 人</span>
+      <span>受け入れ実績 <b class="tab">${fmt(c.supply)}</b> 人</span>
+      <span>いまの待機児童 <b class="tab">${fmt(g.waiting)}</b> 人</span>
+      <span>クラブ <b class="tab">${g.clubs}</b> か所</span></div>
+    ${mu.note?`<div class="notice"><span class="ic">${mu.note.kind==='real-shortage'?'⚠':'ⓘ'}</span>
+      <div>${mu.note.kind==='real-shortage'?'需要が無いのではなく、受け皿が足りていません。':'2023年と2025年で計上方法が変わっています。'}
+      <details class="more"><summary>詳しく</summary><p>${mu.note.text}</p></details></div></div>`:''}
+    <div class="acts">${nb.map(x=>`<span class="act" data-m="${x.n}">近隣：<b>${x.n}</b> ${Math.round(x.s)}</span>`).join('')}
+      <span class="act">入学年度に合わせて<b>時期をずらす</b></span>
+      <span class="act">民間学童を<b>資金計画に入れる</b></span></div>`;
+  document.querySelectorAll('.act[data-m]').forEach(el=>el.onclick=()=>{SEL=el.dataset.m;render();});
+
+  const rows=EXPANDED?order:[...new Set([...order.slice(0,10),SEL])];
+  let h='<div></div>'+D.years.map(y=>`<div class="gh${y===D.bridgeFrom?' br':''}">${String(y).slice(2)}</div>`).join('');
+  for(const m of rows){h+=`<div class="gn${m===SEL?' on':''}">${m}</div>`;
+    for(const y of D.years){const c=at(m,y);
+      h+=c.score==null?`<div class="c" style="background:${PALETTE.nodata}"></div>`
+        :`<div class="c${c.basis==='bridged'?' br':''}" style="background:${col(c.score)};color:${PALETTE.ink[binOf(c.score)]}">${Math.round(c.score)}</div>`;}}
+  document.getElementById('grid').innerHTML=h;
 }
-document.getElementById('hm').innerHTML = hm;
-
-/* ---- 詳細パネル ---- */
-const slot=document.getElementById('detailSlot');
-if(state==='selected'){
-  const mu = D.munis.find(x=>x.name===SEL);
-  const g  = mu.gakudo['2025-05-01'];
-  const c  = at(SEL,D.focusYear);
-  const nb = ['港区','千代田区','江東区','台東区'].map(n=>({n,s:at(n,D.focusYear)?.score})).filter(x=>x.s!=null).sort((a,b)=>a.s-b.s);
-  slot.innerHTML = `<div class="card pad" style="margin-bottom:14px">
-   <div class="hd"><span class="sect-t">${SEL}　2031年度の見通し</span>
-     <span class="muted" style="font-size:11px">予測区間は過去の推計の実測誤差（2年先 ±2.1〜2.6%）から</span></div>
-   <div class="kpi">
-     <div class="kb"><div class="k">学童の需要（予測）</div><div class="v">${fmt(c.demand)}<span class="u"> 人</span></div></div>
-     <div class="kb"><div class="k">いまの受け入れ実績</div><div class="v">${fmt(c.supply)}<span class="u"> 人</span></div></div>
-     <div class="kb" style="border-color:#f0c9c9;background:#fdf4f4">
-       <div class="k" style="color:#a52f2f">不足（このままなら）</div>
-       <div class="v" style="color:#c23434">${fmt(c.gap)}<span class="u" style="color:#c23434"> 人分</span></div></div>
-     <div class="kb"><div class="k">現在の待機児童（2025-05）</div><div class="v">${fmt(g.waiting)}<span class="u"> 人</span>
-       <span class="u muted"> ／ 登録${fmt(g.registered)}人</span></div></div>
-   </div>
-   <div class="note real"><span class="ic" style="color:#b06a00">⚠</span>
-     <div><b>本物の受け皿不足です。</b>${mu.note.text}</div></div>
-   <div class="act"><span class="sect-t">打てる手</span><br>
-     ${nb.map(x=>`<span class="chip">近隣で比べる：<b>${x.n}</b> リスク <b>${Math.round(x.s)}</b></span>`).join('')}
-     <span class="chip">入学年度に合わせて<b>住み替え時期をずらす</b></span>
-     <span class="chip">民間学童の費用を<b>資金計画に入れる</b></span></div>
-  </div>`;
-} else {
-  slot.innerHTML = `<div class="card empty" style="margin-bottom:14px">
-    <div style="font-size:26px">🗺️</div>
-    <div class="big">地図かランキングから、気になる自治体を選んでください</div>
-    <div>選ぶと、その自治体の需要・受け皿・不足人数と、近隣との比較が出ます。</div>
-    <div class="muted" style="font-size:11px;margin-top:4px">
-      まずは「子の生まれ年月」を入れると、小1になる年度の地図に切り替わります。</div>
-  </div>`;
-}
-document.body.dataset.ready = '1';
+byS.onchange=bmS.onchange=render;
+const tr=document.getElementById('tr');
+// スライダーは 0〜20 ＝ 0.00〜2.00pt/年。TREND は小数で持つ
+tr.oninput=()=>{TREND=+tr.value/1000;
+  requestAnimationFrame(()=>{document.getElementById('trv').textContent='+'+(TREND*100).toFixed(2)+'pt';});};
+render();
+document.body.dataset.ready='1';
 </script>
