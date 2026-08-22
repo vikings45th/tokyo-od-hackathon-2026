@@ -199,3 +199,11 @@ src/           アプリケーション本体（構成は docs/05-tech.md で決
 | `docs/09-shortlist.md` | **テーマ候補7案のたたき台**（実測済みデータ・採点表・足切り記録） |
 | `docs/10-roles-schedule.md` | **役割分担と当日スケジュール**（3人とも開発する前提の割り方・時間割） |
 | `docs/11-ai-log.md` | AI活用ログ（提出項目③「生成AI等の活用方法」の材料。その場で1行ずつ書く） |
+| `docs/12-idea-a-shou1-no-kabe.md` | 採用テーマ「小1の壁を、引っ越す前に知る」の企画 |
+| `docs/13-requirements.md` | **要件定義**（仮説の検証結果・FR/NFR・DoD） |
+| `docs/14-basic-design.md` | **基本設計**（指標の式・予測エンジン・スコア・生成AIの使い所） |
+| `docs/15-interfaces.md` | **3人の境界**（①→②→③のインターフェース。実装後の実態を冒頭に追記済み） |
+| `docs/16-ui-detail-design.md` | UI詳細設計（画面構成・地図・色設計・検証結果） |
+| `docs/17-setup-request.md` | ③→②への変更依頼（**3件とも対応済み**。記録として保存） |
+| `docs/18-request-to-data.md` | ③→①への依頼（**`data/app/data.json` と前処理AI。未完了**） |
+| `docs/19-deploy.md` | **デプロイ手順**（🔴 Workers ではなく **Pages**。プロジェクト名の予約もここ） |

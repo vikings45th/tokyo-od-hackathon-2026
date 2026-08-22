@@ -189,10 +189,18 @@ npx wrangler login
 
 ## 2. Cloudflare デプロイの方針
 
+> 🔴 **訂正（2026-08-22）：このセクションは `wrangler deploy`（Workers用）と書いていましたが、
+> この作品には当てはまりません。** 完成した作品は **Pages Functions を持たない純粋な静的サイト**
+> （`src/api/` は作っていない・`/api/scenario` は v1 で不採用）なので、
+> **`npx wrangler pages deploy dist`** が正しいコマンドです。
+> **手順の正は [`docs/19-deploy.md`](19-deploy.md) を見てください。**
+> ここに残す「ローカルから叩く」「トークンを環境変数欄に置かない」という**方針は有効**です。
+
 ### 推奨：デプロイは各自のローカルから
 
 ```bash
-npx wrangler deploy
+npm run build
+npx wrangler pages deploy dist --project-name=<プロジェクト名>
 ```
 
 理由は2つあります。
@@ -217,10 +225,11 @@ npx wrangler deploy
 ### ローカル開発
 
 ```bash
-npx wrangler dev
+npm run dev       # Vite。日常の開発はこれで十分
 ```
 
-デプロイせずにローカルで動作確認できます。日常の開発はこれで十分です。
+⚠️ `npx wrangler dev` は Workers 用です。この作品は静的サイトなので使いません。
+ビルド済みの `dist/` を確認したいときは `npm run preview` です。
 
 ---
 
