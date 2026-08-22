@@ -220,19 +220,33 @@ export interface Indicator {
 // ─────────────────────────────────────────────────────────────
 
 export interface HeatmapCell {
+  /** Muni.name */
   muni: string;
+  /** 入学年度（西暦） */
   year: number;
   /** 総合スコア 0〜100。null はデータなし（グレー表示。0点として扱わない） */
   score: number | null;
   basis: Basis;
   excluded: boolean;
+  /**
+   * 地図のホバー用。ここに載せておくと buildMuniDetail を49回呼ばずに済む。
+   * 588セル × 3数値なので軽い。score が null のときは3つとも null。
+   */
+  demand: number | null;
+  supply: number | null;
+  gap: number | null;
 }
 
 export interface Heatmap {
   /** 行の並び。既定は focusYear のスコア降順 */
   munis: string[];
-  /** 列の並び。入学年度 */
+  /** 列の並び。入学年度の昇順 */
   years: number[];
+  /**
+   * 🔴 順序を保証すること：`munis` の順 × `years` の順。
+   *    cells[muniIndex * years.length + yearIndex]
+   *    → ③は Map を作らずに O(1) で引けます。長さは munis.length * years.length。
+   */
   cells: HeatmapCell[];
   /** ユーザーの子が小1になる年度 */
   focusYear: number;
@@ -240,6 +254,15 @@ export interface Heatmap {
   bridgeFrom: number;
   /** excluded の自治体（別枠表示用） */
   excludedMunis: Array<{ muni: string; note: Note }>;
+  /**
+   * 色の5段ビンの下限。既定 [0, 10, 25, 40, 60]。
+   *
+   * 🔴 ②が返すことに意味があります。③が独自に決めると、
+   *    データやシナリオが変わった瞬間に色の意味が変わってしまいます。
+   *    年度を跨いでも色の意味を一定に保つため、**固定閾値**にしてください
+   *    （分位で切ると年度ごとに基準が動きます）。
+   */
+  bins: number[];
 }
 
 /** 自治体を選んだときの詳細 */
@@ -261,9 +284,36 @@ export interface MuniDetail {
     band: { lo: number; hi: number };
   }>;
   note?: Note;
-  /** 打てる手を出すための近隣比較（スコアが低い順に数件） */
-  alternatives: Array<{ muni: string; score: number }>;
+  /**
+   * ⚠️ `alternatives`（打てる手の近隣自治体）は**②では作りません**。
+   *    ②は地理情報を持たないためです。
+   *    ③が `topojson.neighbors()`（共有arcから隣接を求める）と
+   *    `Heatmap.cells` を突き合わせて「近隣かつスコアが低い自治体」を出します。
+   *    → docs/15-interfaces.md「③が②に依存しないもの」
+   */
 }
+
+/**
+ * ②が export する既定シナリオ。③はこれを起点に差分を当てます。
+ * `{ trend: 0.0084 }`（＝+0.84pt/年。48自治体・2023-05→2025-05 の実測値）
+ */
+export type DefaultScenario = Required<Pick<Scenario, 'trend'>> & Scenario;
+
+/**
+ * 生年月 → 小1になる年度（西暦）。
+ *
+ * 学校教育法：**4月2日〜翌年4月1日生まれが同学年**。
+ *   entryYear = birthYear + (birthMonth >= 4 ? 7 : 6)
+ *
+ * | 生年月      | 入学年度 |
+ * |------------|---------|
+ * | 2024年4月   | 2031    |
+ * | 2025年3月   | 2031    |  ← 早生まれ。年だけで判定すると1年ずれる
+ * | 2025年4月   | 2032    |
+ *
+ * @param birthMonth 1〜12
+ */
+export type EntryYearOf = (birthYear: number, birthMonth: number) => number;
 
 // ─────────────────────────────────────────────────────────────
 // 5. /api/scenario（②の内部。③はローディングと失敗表示のために形だけ知る）

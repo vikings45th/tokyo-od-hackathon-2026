@@ -6,6 +6,7 @@
 > - 基本設計：[`docs/14-basic-design.md`](14-basic-design.md)
 > - 3人の境界（型）：[`docs/15-interfaces.md`](15-interfaces.md) ＋ `src/types.ts`
 > - データ：[`data/SOURCES.md`](../data/SOURCES.md)
+> - **画面モック：[`docs/mockups/`](mockups/)**（`screen-initial.png` / `screen-selected.png`）
 
 **作成日：2026-08-22**
 
@@ -106,6 +107,11 @@ ISC         d3-geo / topojson-client
 ---
 
 ## 2. 画面構成
+
+> ✅ **モック画像があります**：[`docs/mockups/screen-selected.png`](mockups/screen-selected.png)
+> ／ [`docs/mockups/screen-initial.png`](mockups/screen-initial.png)
+> **実データ・検証済み配色で描いたもの**で、そのままスライドに貼れます。
+> 再生成は `PLAYWRIGHT_MODULE=<playwright>/index.mjs node docs/mockups/shot.mjs`。
 
 ```
 ┌──────────────────────────────────────────────────────────────────────┐
@@ -321,9 +327,24 @@ data/geo/           ③（本コミットで生成済み）
 
 ---
 
+## 8-2. 入力の仕様（早生まれ）
+
+**生まれ年だけでは1〜3月生まれが1年ずれます。** 学校教育法では
+**4月2日〜翌年4月1日生まれが同学年**です。
+
+```
+入学年度 = 生まれ年 + (生まれ月 >= 4 ? 7 : 6)
+  2024年4月 → 2031年度 ／ 2025年3月 → 2031年度 ／ 2025年4月 → 2032年度
+```
+
+→ **年と月の2つを選ばせます**（`entryYearOf(year, month)`）。
+未出生なら予定月で構いません。**購入判断に使わせる以上、1年のずれは許容できません。**
+
+---
+
 ## 9. 状態管理
 
-**URLに持たせます**：`?birth=2024&muni=13102&trend=0.0084`
+**URLに持たせます**：`?birth=2024-06&muni=13102&trend=0.0084`
 
 - リロードしても同じ画面。**審査員に「このURLを開いてください」と言える**
 - 動画を撮り直しても同じ状態を再現できる

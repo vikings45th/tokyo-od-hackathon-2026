@@ -54,6 +54,14 @@
 - [ ] `vite.config.ts`：**Tailwind 4 の Vite プラグイン**を追加
 - [ ] `index.html`：**React のルート要素**を用意
 - [ ] `docs/05-tech.md` の技術選定表（「素のTypeScript／素のCSS」）を更新
+- [ ] 🔴 **`src/types.ts` の変更5点を確認**（③が③の実装都合で先に入れています。**②未着手のいまなら手戻りゼロ**）
+      1. `entryYearOf(birthYear, birthMonth)` — 早生まれ対応（4月2日〜翌4月1日が同学年）
+      2. `HeatmapCell` に `demand` / `supply` / `gap` — 地図ホバーで `buildMuniDetail` を49回呼ばずに済む
+      3. `Heatmap.bins` — 色の閾値は②が返す（③が決めるとデータ変更で色の意味が変わる）
+      4. `MuniDetail.alternatives` を**削除** — ②は地理を持たない。③が `topojson.neighbors()` で算出
+      5. `DEFAULT_SCENARIO` を export — `{ trend: 0.0084 }`
+      > 完全仕様は [`docs/15-interfaces.md`](15-interfaces.md) §3（境界B）。
+      > 呼び出しシーケンス・エッジケース・実データ入りのJSON例まで書いてあります。
 
 > ②の実装には影響しません。`src/core/` は `AppData` を受けて `Heatmap`/`MuniDetail` を返す
 > 純粋な関数群で、**型の契約は1文字も変わりません**。
@@ -80,6 +88,7 @@
 - [ ] **打てる手**のセクション
 - [ ] 🔴 **出典・ライセンス・取得日を画面に出す**（絶対に捨てない提出要件）
 - [ ] 地図コロプレス（`data/geo/tokyo-49.topo.json` は生成済み・31.3KB）
+      **モックあり**：`docs/mockups/screen-selected.png` / `screen-initial.png`
 - [ ] ランキングリスト（**面積バイアスの補正役**）
 - [ ] `bridged` 区間の斜線テクスチャ（**予測の確からしさの違いを示す**）
 - [ ] 🔴 **`/api/scenario` が落ちてもヒートマップが表示され続ける**こと
