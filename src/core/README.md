@@ -10,7 +10,9 @@
 ```ts
 import { buildHeatmap, buildMuniDetail, entryYearOf, computeAll } from './core';
 
-const focusYear = entryYearOf(2024);          // → 2031（子が小1になる年度）
+const focusYear = entryYearOf(2024, 4);       // → 2031（子が小1になる年度）
+// 早生まれ（1〜3月生）は1年早い： entryYearOf(2025, 3) === 2031 / entryYearOf(2025, 4) === 2032
+// 第2引数を省くと従来どおり +7
 const heatmap   = buildHeatmap(data, focusYear);
 const detail    = buildMuniDetail(data, '杉並区', undefined, focusYear);
 ```
@@ -36,6 +38,19 @@ const detail    = buildMuniDetail(data, '杉並区', undefined, focusYear);
 3. **`bridgeFrom` の年度から `basis: 'bridged'`。視覚的に区切る**（境界線・網かけ）
 4. **`sources` を画面に必ず出す**（名称・提供元・ライセンス・取得日）— FR-8・大会ルール
 5. **チャートを書く前に `dataviz` スキルを読む**（`docs/05-tech.md`）
+6. 🔴 **`series` の帯は2本ある。取り違えない**（下記）
+
+### `band` と `demandBand` は別物
+
+`MuniDetail.series` には帯が2本入っています。**桁が違うので同じ軸に描くと事故ります**（実測：中央区2031年度）。
+
+| | 値 | 中身 |
+|---|---|---|
+| `demand` | 2,189.8 | 需要（人） |
+| `band` | 9,701.8 〜 10,966.5 | **全学年児童数 N(m,y) の帯**（設計書 §5-3） |
+| `demandBand` | 2,068.6 〜 2,338.3 | **需要の帯**。`band × targetRate` |
+
+登録率・需要のグラフに帯を描くなら **`demandBand`**。`band` は児童数のグラフ用です。
 
 ---
 
@@ -129,7 +144,7 @@ validate.ts     ①のデータ受け入れ検査
 ## 7. 開発コマンド
 
 ```bash
-npm test          # vitest。34件
+npm test          # vitest。45件
 npm run typecheck # tsc --noEmit
 npm run dev       # vite（src/index.html が要る。③が置くまで動きません）
 npm run build     # 同上
