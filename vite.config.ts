@@ -16,7 +16,10 @@ export default defineConfig({
   //    Vite が JSON をバンドルに畳み込むので、実行時 fetch も publicDir も不要です。
   //    ①の data/app/data.json が来たら import 先を1行変えるだけ。
   //    → publicDir は false のままで構いません。
-  publicDir: false,
+  //    A注記（2026-08-23）：Cloudflare Pages の `_headers` を dist/ 直下に置く必要があるため、
+  //    publicDir を **`src/public`** にしました（root が src/ なので相対パスです）。
+  //    ここに入るのは自作の設定ファイルだけ。**`../data` には絶対に向けないこと。**
+  publicDir: 'public',
 
   build: {
     outDir: '../dist',

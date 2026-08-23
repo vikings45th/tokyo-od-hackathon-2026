@@ -12,7 +12,7 @@
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
     "validate": "node scripts/validate-app-data.mjs",
-    "deploy": "wrangler pages deploy dist"
+    "deploy": "wrangler pages deploy"
   },
   "devDependencies": {
     "@types/d3-geo": "^3.1.1",
@@ -22,7 +22,8 @@
     "@vitejs/plugin-react": "^6.1.0",
     "typescript": "^7.0.2",
     "vite": "^8.2.2",
-    "vitest": "^4.1.11"
+    "vitest": "^4.1.11",
+    "wrangler": "^4.125.0"
   },
   "dependencies": {
     "@heroui/react": "^3.2.4",

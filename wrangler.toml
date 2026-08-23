@@ -1,0 +1,14 @@
+# Cloudflare Pages の設定（担当：A／デプロイ）
+#
+# これがあると `npx wrangler pages deploy` を引数なしで実行できます。
+# プロジェクト名と出力先を毎回タイプしなくて済むので、3人の誰が叩いても同じ場所に出ます。
+#
+# 🔴 ここに API トークンやアカウントIDを書かないこと。
+#    このリポジトリは public です。認証は `wrangler login`（ブラウザOAuth）で行います。
+#    詳細は docs/22-deploy.md。
+
+name = "shou1-no-kabe-map"
+compatibility_date = "2026-08-23"
+
+# `npm run build` の出力先。vite.config.ts の build.outDir と必ず揃えること。
+pages_build_output_dir = "dist"
