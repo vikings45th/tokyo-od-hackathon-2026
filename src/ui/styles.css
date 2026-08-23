@@ -13,9 +13,9 @@
  *    幅が変わること自体が「ここから道具です」の宣言になる。
  *    切り替わりは**1往復だけ**（読む → 使う → 読む）。交互に出すと元の「同型反復」に戻る。
  *
- * ⚠️ ランプの最淡 #86b6ef は純白系の面でないと対面2:1を割る。
- *    #ffffff 2.11 / #fcfcfb 2.06 は PASS、#f7f7f5 は 1.97 で FAIL。
+ * ⚠️ ランプの淡端（ライト #d9a892 が対 #ffffff で 2.11）は純白系の面でないと 2:1 を割る。
  *    → --bg-0 / --bg-1 をグレーにしないこと。地図とヒートマップは --bg-0 の上に置く。
+ *    ランプの実体と検証記録は palette.ts。ramp[0]（入りやすい）は --accent と同値。
  *
  * 箱（枠線＋影のカード）は使わない。区切りは余白と1pxのヘアラインだけ。
  */
@@ -34,6 +34,7 @@
   --bar-h:58px;
   --gut:36px;
   --read:660px;   /* 読む幅。日本語で1行 約34文字 */
+  --intro:1160px; /* つかみの幅。#lede と #why が共有する */
   --wide:1360px;  /* 使う幅 */
 
   --fs-h1:clamp(30px,3.2vw,50px);
@@ -86,18 +87,24 @@ body{
 .theme-btn:hover{color:var(--ink-1);border-color:var(--ink-3)}
 
 /* ══════════════════════════════════════════════════════════
-   幅の2型。section は全幅（罫を端から端まで引くため）、
-   中身だけを .read / .wide で絞る
+   幅の3型。section は全幅（罫を端から端まで引くため）、
+   中身だけを .read / .intro / .wide で絞る。
+   .intro は #lede と #why だけが使う「つかみ」の帯。
+   図版とカードを置く場所が要るが、道具の幅まで広げると
+   「ここから道具です」の合図が弱まるので、その中間に置く
    ══════════════════════════════════════════════════════════ */
 section{padding:58px 0;scroll-margin-top:calc(var(--bar-h) + 12px)}
 .read{max-width:var(--read);margin:0 auto;padding:0 var(--gut)}
+.intro{max-width:var(--intro);margin:0 auto;padding:0 var(--gut)}
 .wide{max-width:var(--wide);margin:0 auto;padding:0 var(--gut)}
 .lede{font-size:16px;color:var(--ink-2)}
 h1{font-size:var(--fs-h1);font-weight:800;letter-spacing:-.045em;line-height:1.18}
 h2{font-size:var(--fs-h2);font-weight:800;letter-spacing:-.035em;line-height:1.35}
 
 /* ── #lede ── 表紙にしない。1画面は占有させない ── */
-#lede{padding-top:46px;min-height:52vh;display:flex;flex-direction:column;justify-content:center}
+/* 図版が 426px あるので padding は詰める。46px だと h1 の下端が初期表示の
+   720px にぎりぎり触る（58 + 46 + 426 + 22 + 97 = 649） */
+#lede{padding-top:34px;min-height:52vh;display:flex;flex-direction:column;justify-content:center}
 #lede h1 em{font-style:normal;color:var(--accent)}
 #lede .lede{margin-top:18px}
 #lede .lede b{color:var(--ink-1);font-weight:800}
@@ -120,9 +127,7 @@ h2{font-size:var(--fs-h2);font-weight:800;letter-spacing:-.035em;line-height:1.3
   font-size:12px;font-weight:700;color:var(--ink-3);background:var(--bg-0);padding:0 8px}
 
 /* ── #why ── 困りごと。箇条書きではなく、数字を持った3つの段落 ── */
-.why-list{margin-top:26px;display:grid;gap:0}
-.why-list > div{padding:20px 0;border-top:1px solid var(--hair)}
-.why-list > div:last-child{border-bottom:1px solid var(--hair)}
+.why-list{margin-top:26px;display:grid}
 /* 🔴 3つとも大きな色付き見出しにすると、それ自体が「同型の反復」になる。
       強調するのは数字だけにして、文は本文の重さで置く。 */
 .why-list .wn{font-size:17.5px;font-weight:800;letter-spacing:-.025em;line-height:1.5}
@@ -182,7 +187,8 @@ h2{font-size:var(--fs-h2);font-weight:800;letter-spacing:-.035em;line-height:1.3
 .stub{margin-top:8px;font-size:12.5px;color:var(--warn)}
 
 /* 年スクラバ。2026→2038 の物語は、スクロール演出ではなくこの1本に集約した */
-.scrub{margin-top:22px}
+/* 地図の直上に置くので、下側にだけ余白を取る */
+.scrub{margin:0 0 14px}
 .scrub-hd{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:10px}
 .scrub-y{font-size:22px;font-weight:800;letter-spacing:-.03em;color:var(--accent)}
 .scrub-tag{font-size:11.5px;font-weight:700;color:var(--ink-3);
@@ -191,6 +197,14 @@ h2{font-size:var(--fs-h2);font-weight:800;letter-spacing:-.035em;line-height:1.3
 .scrub-why{font-size:12.5px;color:var(--ink-3)}
 .scrub-back{margin-left:auto}
 .scrub-rng{width:100%;display:block}
+/* 1年＝1段であることを見せる目盛り。.scrub-ax と同じ 7px の補正をかけて縦に揃える。
+   ⚠️ 小1の年と推定の始まりは同じ年度になりうる（実測：どちらも2031年度）。
+      重なったときは「小1」を優先して出す（JSX 側の三項演算子） */
+.scrub-ticks{position:relative;height:7px;margin:4px 7px 0}
+.scrub-ticks i{position:absolute;top:0;width:1px;height:5px;background:var(--hair);
+  transform:translateX(-50%)}
+.scrub-ticks i.you{height:7px;background:var(--accent)}
+.scrub-ticks i.br{height:7px;background:var(--warn)}
 /* 目盛りは、つまみの可動域（左右 7px ぶん内側）に合わせて寄せる。
    ⚠️「小1」と「推定の始まり」は年度が重なりうる（実測：どちらも2031年度）。
       同じ行に置くと必ず重なるので2行に分けている。 */
@@ -234,6 +248,8 @@ h2{font-size:var(--fs-h2);font-weight:800;letter-spacing:-.035em;line-height:1.3
 .crow .cn{font-size:14px;font-weight:700;white-space:nowrap}
 .crow .cn em{font-style:normal;font-size:11px;font-weight:700;color:var(--accent);margin-left:7px}
 .crow .ch{font-size:12.5px;color:var(--ink-2)}
+/* 「全員入れる」は地図のビン0（＝入りやすい）と同じ青。
+   palette.ts の ramp[0] が --accent と同値なので、これで自動的に揃う */
 .crow .ch.ok{color:var(--accent);font-weight:700}
 .crow .ch b{font-weight:800}
 .crow .cv{font-size:14px;font-weight:800;text-align:right;min-width:38px}
@@ -357,11 +373,21 @@ details.more p{margin-top:7px;font-size:13px;color:var(--ink-3);max-width:46em}
 
 /* ホバーで出す補足。native title だと読ませたい文が長すぎる */
 .tip{position:relative;border-bottom:1px dotted var(--ink-3);cursor:help}
-.tip > .tipbody{position:absolute;left:0;bottom:calc(100% + 8px);width:max-content;max-width:290px;
+/* 🔴 出し入れは display で行う。visibility:hidden だと**隠れていても箱がレイアウトに残り**、
+      390px 幅では凡例の5個＋推定の計6個（各290px・left:0 起点）が画面右にはみ出して、
+      ページ全体に横スクロールを作っていた（.bar が 410px に伸びていたのはその巻き添え）。
+   max-width も画面幅で頭打ちにする。290px 固定だと 320px 級の端末で必ずはみ出す。 */
+.tip > .tipbody{display:none;position:absolute;left:0;bottom:calc(100% + 8px);
+  width:max-content;max-width:min(290px,calc(100vw - 2 * var(--gut)));
   background:var(--ink-1);color:var(--bg-0);font-size:12.5px;font-weight:500;line-height:1.6;
-  padding:9px 12px;border-radius:9px;opacity:0;visibility:hidden;transition:opacity .14s;z-index:20;
+  padding:9px 12px;border-radius:9px;opacity:0;z-index:20;
+  transition:opacity .14s,display .14s allow-discrete;
   pointer-events:none;letter-spacing:0}
-.tip:hover > .tipbody,.tip:focus-visible > .tipbody{opacity:1;visibility:visible}
+.tip:hover > .tipbody,.tip:focus-visible > .tipbody{display:block;opacity:1}
+/* display:none から出てくるときの起点。非対応ブラウザでは fade せず即表示になるだけ */
+@starting-style{
+  .tip:hover > .tipbody,.tip:focus-visible > .tipbody{opacity:0}
+}
 
 /* ══════════════════════════════════════════════════════════
    ノートPC（〜1280px）
@@ -417,4 +443,73 @@ details.more p{margin-top:7px;font-size:13px;color:var(--ink-3);max-width:46em}
   .zb{padding:5px 9px;font-size:11.5px}
   .selbar .big{font-size:34px}
   .gn{font-size:10.5px}
+  /* 保険。凡例のツールチップは画面右端に近い位置から出るので、万一表示されても
+     ページごと横スクロールさせない。clip は hidden と違いスクロール領域を作らず、
+     overflow-y は visible のままなので、上に出る吹き出し自体は消えない */
+  #tool{overflow-x:clip}
+}
+/* ══════════════════════════════════════════════════════════
+   #lede の図版と、#why の3枚のカード
+   ══════════════════════════════════════════════════════════ */
+
+/* 🔴 図版は h1 の「上」。横に並べると 660px の読む幅が潰れて、
+      h1 が「保育園には、入れ／た。」と割れる。旧 HeroMark からの引き継ぎ */
+/* width:100% は必須。#lede が flex コンテナなので、margin:0 auto だけだと
+   flex アイテムが stretch せず内容幅（652px）に縮む */
+.hero-wrap{width:100%;max-width:var(--intro);margin:0 auto;padding:0 var(--gut)}
+/* 660px の列を 1160px の器の中央へ。器いっぱいに広げないので、
+   margin-inline:auto を付けないと左に寄って「中央からずれている」ように見える。
+   文字は左揃えのまま（日本語の長い本文はセンター揃えにすると行頭が拾えない） */
+.hero-copy{max-width:660px;margin-inline:auto}
+/* viewBox 620×400。中に 13px のラベルを持つので、これ以上縮めると読めない */
+.hero-visual{display:block;width:min(660px,100%);height:auto;margin:0 0 22px;overflow:visible}
+/* リード文だけは読む幅に戻す。660px だと1行41文字で長い */
+.hero-copy .lede{max-width:600px}
+
+.hero-visual text{font-family:inherit;fill:var(--ink-2);font-size:13px;font-weight:700}
+.hero-visual .hero-orbit{fill:none;stroke:var(--hair);stroke-width:1.5;stroke-dasharray:4 7}
+.hero-visual .hero-panel>rect,
+.hero-visual .hero-filter>rect,
+.hero-visual .hero-result>rect{fill:var(--bg-0);stroke:var(--hair);stroke-width:1.5}
+.hero-visual .hero-filter{transform:translate(3px,22px)}
+.hero-visual .hero-result{transform:translate(386px,278px)}
+.hero-visual .hero-filter rect:not(:first-child){fill:var(--bg-2);stroke:0}
+.hero-visual .hero-map path{fill:var(--num-a);stroke:var(--bg-0);stroke-width:3}
+.hero-visual .hero-map .hero-selected{fill:var(--accent)}
+.hero-visual .hero-map circle{fill:var(--bg-0);stroke:var(--accent);stroke-width:3}
+.hero-visual .hero-bars rect{fill:var(--hair)}
+.hero-visual .hero-bars rect:first-child,
+.hero-visual .hero-bars rect:nth-child(3){fill:var(--num-a)}
+.hero-visual .hero-bars rect:nth-child(2){fill:var(--accent)}
+.hero-visual line{stroke:var(--hair)}
+.hero-visual .hero-score{fill:var(--accent);font-size:20px;font-weight:800}
+.hero-visual .hero-caption{fill:var(--ink-3);font-size:11px}
+.hero-visual .hero-result circle{fill:var(--accent)}
+.hero-visual .hero-result path{stroke:var(--bg-0);stroke-width:2;fill:none}
+.hero-visual .hero-result-name{fill:var(--ink-1);font-size:15px;font-weight:800}
+
+/* .intro（1160px）いっぱいの3列。1枚 349px で本文1行 約22文字。
+   660px の .read に入れていたときは 193px・10文字で、カードではなく短冊だった */
+.why-list{grid-template-columns:repeat(3,minmax(0,1fr));gap:20px}
+.why-card{min-width:0;padding:26px 24px 24px;border:1px solid var(--hair);
+  border-radius:14px;background:var(--bg-1)}
+/* アイコンはカードの中央へ。文は左揃えのままなので軸は2本になるが、
+   356px の横長カードでは左上に小さく置くより見出しとして働く */
+.why-icon-wrap{width:72px;height:72px;display:grid;place-items:center;
+  margin:0 auto 18px;
+  border-radius:18px;background:var(--bg-0);color:var(--accent);border:1px solid var(--hair)}
+/* WhyIcon は viewBox 0 0 48 48 で width/height 属性を持たない。サイズはここだけで決まる */
+.why-icon{display:block;width:48px;height:48px}
+
+/* 1000px 以下は「つかみの帯」をやめて読む幅に落とす。
+   #lede と #why が両方 660px になるので、左端が揃ったまま1列に畳める */
+@media (max-width:1000px){
+  .intro{max-width:var(--read)}
+  .hero-wrap{max-width:var(--read)}
+  .hero-copy{max-width:none}
+  .hero-visual{width:100%;max-width:570px;margin:0 auto 18px}
+  .why-list{grid-template-columns:1fr;gap:12px}
+  .why-card{padding:20px}
+  /* 1列でもカードは 347px 以上あるので 72px のまま。余白だけ詰める */
+  .why-icon-wrap{margin-bottom:14px}
 }
