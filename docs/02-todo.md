@@ -62,12 +62,20 @@
 | **②ロジック/AI** | [`docs/19-request-to-logic.md`](19-request-to-logic.md) | 5件（本体は依頼3・4） |
 | **①データ** | [`docs/18-request-to-data.md`](18-request-to-data.md) | 6件（依頼1が最優先） |
 
-- [ ] ②：依頼1 `npm run validate`（15分・①のボトルネックが外れる）
-- [ ] ②：依頼2 raking 不実装の宣言＋ドキュメント修正（20分）
-- [ ] ②：**依頼3 自治体別トレンド（OLS＋信頼区間）と予測区間への反映**（本体）
-- [ ] ②：**依頼4 `src/core/backtest.ts` — 誤差分布を入力から計算＋テスト**（本体）
-- [ ] ②：依頼5 `supply` の JSDoc（登録実績であって定員ではない）
-- [ ] ①：**依頼1 `data/app/data.json` を49自治体ぶん**（🔴 全体のクリティカルパス）
+- [x] ②：依頼1 `npm run validate` ✅（`scripts/validate-app-data.mjs`。`validateAppData()` を呼ぶだけ）
+- [x] ②：依頼2 raking 不実装の宣言＋ドキュメント修正 ✅（設計書 §5-1・§11・要件 §10）
+- [x] ②：**依頼3 自治体別トレンド（OLS＋縮約推定＋信頼区間）と予測区間への反映** ✅
+      🔴 **ただし今日のデータでは49自治体すべてフォールバックします。**
+      学童 2024-05 の1点が入るまで自治体別の傾きは引けません（下の①の依頼）
+- [ ] ②：**依頼4 `src/core/backtest.ts` — 誤差分布を入力から計算＋テスト**
+      ⚠️ 再現コード自体は `scripts/build_backtest.py` に**既に存在します**。
+      動かないのは入力 `data/raw/population/*_result01.csv` が `.gitignore` されているだけ
+- [x] ②：依頼5 `supply` の JSDoc（登録実績であって定員ではない）✅
+- [x] ②：依頼6 main の赤いテスト3件 ✅／依頼7 プリセット文言 ✅／依頼8 `DEFAULT_TREND` 0.0084→0.0081 ✅
+- [x] ①：**依頼1 `data/app/data.json` を49自治体ぶん** ✅（`npm run validate` で緑）
+- [ ] ①：🔴 **学童 2024-05-01 の1点を `data/processed/gakudou_stats_by_municipality.csv` に足す**
+      （`data/★【令和6年度】…pdf`。分母は `schools[].actual` に既にある。
+      **これだけで②の自治体別トレンドが有効になります**）
 - [ ] ①：依頼2 出典表記の分離を `AppData.sources[]`（画面）にも反映
 - [ ] ①：依頼3 地図（国土数値情報）のクレジット確定
 - [ ] ①：依頼6 デプロイと公開URL（**②から①へ移管**・今日中に1回）
@@ -119,8 +127,10 @@
 #### ② ロジック/AI担当
 
 - [x] Vite ＋ TypeScript 雛形 ✅
-- [x] `src/core/forecast.ts` ✅（学校別コーホート＋raking は未実装だが、
-      出力は定義上ここの公式値と一致するのでスコアは変わらない）
+- [x] `src/core/forecast.ts` ✅（学校別コーホート＋raking は **v1 で作らないと決定**。
+      出力は定義上 都の公式値と恒等的に一致するのでスコアが1つも変わらないため。
+      設計書 §5-1 に明記済み・docs/19 依頼2）
+- [x] `src/core/trend.ts` ✅ 自治体別の最小二乗＋縮約推定＋信頼区間（docs/19 依頼3）
 - [x] `src/core/indicators/gakudo.ts`：登録率ベースの指標 ✅
 - [x] 🔴 `excluded: true` を色の計算に入れない ✅（③側でも守っている）
 - [x] バックテスト ✅（`src/core/bands.ts`。実測できるのは1年先と2年先だけ）
@@ -128,7 +138,8 @@
       （$100上限とライセンス発行待ちに作品を依存させないため。`docs/05-tech.md`）
 - [x] **③からの変更依頼3件** ✅ すべて対応済み（`abcdae0`）
 - [x] ~~**出荷オーナー**：デプロイと公開URL~~ → **①へ移管**（`docs/18-request-to-data.md` 依頼6）
-- [ ] 🔴 **`docs/19-request-to-logic.md` の依頼5件**（本体は依頼3・4）
+- [x] 🔴 **`docs/19-request-to-logic.md` の依頼8件**：1・2・3・5・6・7・8 は対応済み ✅
+- [ ] 依頼4（`src/core/backtest.ts`）だけ残り。①の `data/raw/population/*.csv` 待ち
 
 #### ③ UI担当
 

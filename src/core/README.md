@@ -40,17 +40,29 @@ const detail    = buildMuniDetail(data, '杉並区', undefined, focusYear);
 5. **チャートを書く前に `dataviz` スキルを読む**（`docs/05-tech.md`）
 6. 🔴 **`series` の帯は2本ある。取り違えない**（下記）
 
-### `band` と `demandBand` は別物
+### 帯は3本ある。取り違えないこと
 
-`MuniDetail.series` には帯が2本入っています。**桁が違うので同じ軸に描くと事故ります**（実測：中央区2031年度）。
+`MuniDetail.series` には帯が3本入っています。**桁が違うので同じ軸に描くと事故ります**（実測：中央区2031年度）。
 
 | | 値 | 中身 |
 |---|---|---|
-| `demand` | 2,189.8 | 需要（人） |
-| `band` | 9,701.8 〜 10,966.5 | **全学年児童数 N(m,y) の帯**（設計書 §5-3） |
-| `demandBand` | 2,068.6 〜 2,338.3 | **需要の帯**。`band × targetRate` |
+| `demand` | 2,173.0 | 需要（人） |
+| `band` | 9,717.8 〜 10,787.8 | **全学年児童数 N(m,y) の帯**（設計書 §5-3）。⛔ 需要のグラフに描かない |
+| **`demandBand`** | **1,855.1 〜 2,834.7** | **需要の帯。** 児童数の推計誤差 **＋ 登録率トレンドの不確かさ** |
+| **`gapBand`** | **564.1 〜 1,543.7** | **不足人数の帯**（`gap` = 882）。🔴 S2「◯人分、足りない」に添えるのはこれ |
 
-登録率・需要のグラフに帯を描くなら **`demandBand`**。`band` は児童数のグラフ用です。
+🔴 **2026-08-23 に `demandBand` の中身が変わりました（docs/19 依頼3-4）。**
+以前は `band × targetRate` で**児童数の推計誤差しか入っていません**でした（幅 226.4 → **979.6**）。
+モデルを支配しているのは登録率トレンドの方なので、それが入っていないものを「予測区間」と呼べません。
+
+```
+relN = (band.lo − children) / children      relR = (r_lo − r_target) / r_target
+demandBand.lo = demand × (1 − √(relN² + relR²))     ← 独立と仮定して二乗和平方根
+gapBand.lo    = max(demandBand.lo − supply, 0)      ← 供給は推定でなく仮定なので帯を持たない
+```
+
+> 🔴 **③へ：`src/ui/Series.tsx` が `band.lo * rTarget` を自前で再計算しています。**
+> `r.demandBand` に差し替えてください。**そのままだとトレンドの不確かさが画面に出ません。**
 
 ---
 
@@ -131,12 +143,55 @@ validate.ts     ①のデータ受け入れ検査
 
 ---
 
+## 5-B. 🔴 自治体別トレンド（2026-08-23 追加・docs/19 依頼3）
+
+```ts
+const t = measureTrend(data);
+t.trend         // 都計比の傾き +0.008128（③の S5 が表示している値。従来どおり）
+t.byMuni        // Map<自治体名, MuniTrend>
+t.medianSlope   // 自治体別傾きの中央値 +0.0089
+t.slopeP10 / t.slopeP90   // +0.0033 / +0.0187（自治体間のばらつき）
+t.measuredCount // 自前で傾きを引けた自治体数。🔴 いまは 0 / 49
+t.points        // 使えた時点数の中央値。🔴 いまは 2
+```
+
+`MuniDetail.trend`（= `MuniTrend`）で、その自治体の傾きが**実測か都平均か**が分かります。
+
+| フィールド | 意味 |
+|---|---|
+| `used` | 🔴 実際にモデルが使った傾き |
+| `fallback` | **true なら「この区の傾きは測れていない。都の実測値を当てている」。画面にそう書くこと** |
+| `slope` / `se` / `nPoints` | この自治体だけで引いた傾き・標準誤差・使えた時点数 |
+| `ciLo` / `ciHi` | 傾きの下限・上限（片側10%）。`demandBand` の幅はここから来る |
+| `denominator` | 分母に使った系列（`childrenSeries` / `schools` / `official`） |
+
+### 🔴 いまは49自治体すべて `fallback: true` です
+
+学童は3時点ありますが **2025-10 に対応する児童数が無い**ので落ち、実質2点＝自由度0。
+`MIN_TREND_POINTS = 3` に届かず、全件が都の実測値（+0.81pt）へフォールバックします。
+
+→ **①へ：学童 2024-05-01 の1点（`data/` の令和6年度PDF）を足すだけで有効になります。**
+　 分母は `AppData.schools[].actual`（[令和5,6,7]）に既にあるので、**②のコード変更は不要**です。
+　 そのとき縮約推定が同時に効き、標準誤差の大きい自治体は都平均へ寄ります。
+
+### `Scenario.trend` の意味が変わりました（後方互換）
+
+| 渡し方 | 挙動 |
+|---|---|
+| **数値を渡す**（③のスライダー） | その値を49自治体すべてに一律。**従来どおり。画面の挙動は変わりません** |
+| **未指定**（`computeAll(data)`） | **自治体別の実測値**。引けない自治体は都の実測値へフォールバック |
+
+`core.scenario.trend` は「実際に使われた一律の値」で、未指定のときは `measureTrend(data).trend`
+に揃えてあります（定数を表示しつつ実測値で計算する、という食い違いを作らないため）。
+
+---
+
 ## 6. まだ作っていないもの
 
 | | 状態 | 影響 |
 |---|---|---|
 | **学校別コーホート＋raking**（設計書 §5-1） | **未実装** | **スコアもヒートマップも数字は変わりません。** スコアに必要な自治体別児童数は `Muni.official` に既にあり、raking の出力は定義上その公式値と一致するため。DoD#1・#2 と「都の推計をブラウザで再実行」という技術力の見せ場だけが未達。`forecast.ts` の `projectMuni` を差し替えれば入ります |
-| `backtest.ts`（誤差の再計算） | **未実装** | `data/*.json` の `backtest` を読むだけにしています。DoD#3 が未達 |
+| `backtest.ts`（誤差の再計算） | **未実装（TS版）** | ⚠️ **再現コード自体は `scripts/build_backtest.py` に存在します。** 動かないのは入力 `data/raw/population/R{5,6,7}_result01.csv` が `.gitignore` されているだけ（カタログ掲載・CC BY 4.0 なのでコミット可）。TS版は①が `data/app/backtestInput.json` を出したら入ります |
 | `src/api/` | **作りません** | FR-7 を作らないため |
 
 ---
@@ -144,10 +199,12 @@ validate.ts     ①のデータ受け入れ検査
 ## 7. 開発コマンド
 
 ```bash
-npm test          # vitest。45件
+npm test          # vitest。62件
 npm run typecheck # tsc --noEmit
-npm run dev       # vite（src/index.html が要る。③が置くまで動きません）
-npm run build     # 同上
+npm run dev       # vite
+npm run build     # NFR-4：ネットに触れない
+npm run validate                    # data/app/data.json を検査（problems があれば exit 1）
+npm run validate data/sample.json   # パス指定も可
 ```
 
 > ⚠️ **このリポジトリのルート雛形（`package.json` / `tsconfig.json` / `vite.config.ts` / `vitest.config.ts`）は②が作りました。**
@@ -160,5 +217,5 @@ npm run build     # 同上
 `data/` 直下には転載不可のPDF・CSVが置かれており、まるごと `dist/` にコピーされて
 公開URLから配信されてしまいます（`data/README.md`・`CLAUDE.md` のライセンス方針違反。**動画はYouTubeで一般公開されます**）。
 
-→ ①が `data/app/` を生成したら **`publicDir: '../data/app'`** に差し替えます。
-　 それまで③は `import data from '../../data/sample.json'` で読んでください。
+③は `import data from '../../data/app/data.json'` で読んでいます（Vite がバンドルに畳み込むので
+`publicDir` も実行時のネットワークも不要。NFR-4）。**`publicDir: '../data'` にはしないでください。**
