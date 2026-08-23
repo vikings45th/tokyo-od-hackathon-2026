@@ -1,0 +1,27 @@
+{
+  "_generatedBy": "生成AI①（前処理ETL）。docs/14-basic-design.md §7 用途①。CSV先頭30行を人間が確認しモデルが抽出プランを作成。値そのものはプランに含まれず、パーサ（build_processed.py）が決定論的に実行する。詳細は docs/11-ai-log.md",
+  "appliesTo": [
+    "data/raw/r50501gakudoujoukyou.csv",
+    "data/raw/20250501.csv",
+    "data/raw/20251001.csv"
+  ],
+  "sourceDescription": "東京都福祉局「放課後児童健全育成事業（学童クラブ事業）実施状況」CSV。令和5年5月・令和7年5月・令和7年10月の3時点。同一レイアウトだが数値の書式（カンマ区切りの有無・末尾スペースの有無）が時点ごとに違う。",
+  "headerRow": 6,
+  "_headerRowNote": "1始まりの行番号。見出し行は「,区名,クラブ数,登録児童数,待機児童数,,,市町村名,クラブ数,登録児童数,待機児童数,」",
+  "blocks": [
+    { "name": "区部", "colStart": 1 },
+    { "name": "市町村部", "colStart": 7 }
+  ],
+  "_blockNote": "colStart は0始まりの列インデックス。区部と市町村部が横に2ブロック並ぶ（板やヘッダ画像の右にもう1セット）。行の通し番号列（区部は列0、市町村部は列6）は使わない。",
+  "columns": {
+    "muni": 0,
+    "clubs": 1,
+    "registered": 2,
+    "waiting": 3
+  },
+  "_columnsNote": "各ブロックの colStart からのオフセット。muni=区市町村名, clubs=クラブ数, registered=登録児童数, waiting=待機児童数（すべて実数）",
+  "numberCleaning": ["strip", "removeComma", "emptyOrDashToNull"],
+  "_numberCleaningNote": "strip: 前後の空白除去（末尾に半角スペースが付く時点がある）。removeComma: 桁区切りカンマ除去（\"1,261 \" 形式の時点がある）。emptyOrDashToNull: 空文字・'-' はnull扱い（このCSVでは実際には出現しないが、他局の類似CSVで見られる欠測表現のため防御的に含める）。",
+  "rowFilter": "muniNameInKnownMuniList",
+  "_rowFilterNote": "区名/市町村名が62区市町村コード表に無い行（区計・市町村計・総計・空行など）は捨てる。"
+}

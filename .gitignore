@@ -28,15 +28,20 @@ build/
 *.log
 npm-debug.log*
 
+# Python
+__pycache__/
+*.pyc
+
 # 取得した元データ（data/README.md 参照）
-# raw は転載不可のファイルを含むのでコミットしない。scripts/fetch_raw.py で取り直す
+# raw/ 以下はコミット対象にしない。fetch_raw.py / fetch_population.py / fetch_schools.py で取り直す
 data/raw/
 # 学童クラブ名簿はオープンデータカタログ未掲載＝転載不可。ライセンス確認が済むまで除外
 data/processed/gakudou_clubs_*.csv
-# 福祉局サイトの元データ。data/raw/ ではなく data/ 直下に置かれた分も転載不可なので除外
-# （d2b600c で誤ってコミットされていた。ファイル自体はローカルに残す）
-data/*.pdf
-data/20251001.csv
+# data/ 直下に転載不可PDF/CSVを誤って置いた事故が複数回発生した（2026-08-22、d2b600c 他）。
+# data/ 直下は README.md・SOURCES.md・sample.json・app/*.json だけを想定しているので、
+# 直下（サブディレクトリではない）へのPDF/CSVの取り込みを防ぐ。
+/data/*.csv
+/data/*.pdf
 
 # 別リポジトリ（startup/.git を持つ）。ここで追跡すると壊れた gitlink になる（docs/17 依頼C）
 startup/

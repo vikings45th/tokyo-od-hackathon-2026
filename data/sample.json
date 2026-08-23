@@ -465,8 +465,8 @@
      "count": 2569
     }
    ],
-   "baseChildren": 14417,
-   "children2023": 14178,
+   "baseChildren": 18041,
+   "children2023": 17706,
    "gakudo": [
     {
      "asOf": "2023-05-01",
@@ -1434,19 +1434,19 @@
  "backtest": [
   {
    "horizon": 1,
-   "meanPct": 0.25,
+   "meanPct": 0.18,
    "maePct": 0.93,
-   "p10Pct": -1.46,
-   "p90Pct": 1.57,
-   "n": 57
+   "p10Pct": -1.47,
+   "p90Pct": 1.41,
+   "n": 49
   },
   {
    "horizon": 2,
-   "meanPct": 0.26,
-   "maePct": 1.51,
-   "p10Pct": -2.13,
-   "p90Pct": 2.61,
-   "n": 57
+   "meanPct": 0.17,
+   "maePct": 1.37,
+   "p10Pct": -2.07,
+   "p90Pct": 1.94,
+   "n": 49
   }
  ],
  "sources": [
