@@ -1,58 +1,16 @@
-/** スクロール演出と地図操作のフック。ライブラリは入れない。 */
-import { useCallback, useEffect, useRef, useState } from 'react';
+/**
+ * 地図の操作とテーマのフック。ライブラリは入れない。
+ *
+ * 2026-08-23 第2版で `useInView` / `useScrollStep` / `useScrollSpy` を削除した。
+ * スクロール連動の演出（フェードイン・年送り・解説列のナビ）をすべてやめたため。
+ */
+import { useEffect, useRef, useState } from 'react';
 import { MAP_H, MAP_W, type Box } from './geo';
 
-/**
- * 画面に入ったら data-in を立てる（CSS 側でフェードイン）。
- *
- * ⚠️ JS が動かない／`prefers-reduced-motion` のときは CSS の既定が「可視」なので、
- *    何もしなくても内容は読める。ここで隠す責任は持たない。
- */
-export function useInView<T extends HTMLElement>(): (el: T | null) => void {
-  const io = useRef<IntersectionObserver | null>(null);
-  if (io.current === null && typeof IntersectionObserver !== 'undefined') {
-    io.current = new IntersectionObserver(
-      (es) => es.forEach((e) => e.isIntersecting && e.target.setAttribute('data-in', '')),
-      { threshold: 0.18 },
-    );
-  }
-  useEffect(() => () => io.current?.disconnect(), []);
-  return useCallback((el: T | null) => {
-    if (el) io.current?.observe(el);
-  }, []);
-}
-
-/** S3：スクロール位置に応じて「いま何番目のステップか」を返す */
-export function useScrollStep(count: number): [number, (i: number) => (el: HTMLElement | null) => void] {
-  const [step, setStep] = useState(0);
-  const els = useRef<Array<HTMLElement | null>>(Array(count).fill(null));
-
-  useEffect(() => {
-    if (typeof IntersectionObserver === 'undefined') return;
-    const io = new IntersectionObserver(
-      (es) => {
-        for (const e of es) {
-          if (!e.isIntersecting) continue;
-          const i = els.current.indexOf(e.target as HTMLElement);
-          if (i >= 0) setStep(i);
-        }
-      },
-      { rootMargin: '-50% 0px -50% 0px' },
-    );
-    for (const el of els.current) if (el) io.observe(el);
-    return () => io.disconnect();
-  }, [count]);
-
-  const ref = useCallback(
-    (i: number) => (el: HTMLElement | null) => {
-      els.current[i] = el;
-    },
-    [],
-  );
-  return [step, ref];
-}
-
 const FULL: Box = { x: 0, y: 0, w: MAP_W, h: MAP_H };
+
+/** これ以上動いたらドラッグ。これ未満はクリック（自治体の選択）として扱う */
+const DRAG_SLOP = 4;
 
 /**
  * 地図のズーム／パン。`viewBox` を state に持って書き換えるだけ。
@@ -63,7 +21,7 @@ const FULL: Box = { x: 0, y: 0, w: MAP_W, h: MAP_H };
 export function useZoomPan() {
   const [vb, setVb] = useState<Box>(FULL);
   const svg = useRef<SVGSVGElement | null>(null);
-  const drag = useRef<{ x: number; y: number; vx: number; vy: number } | null>(null);
+  const drag = useRef<{ x: number; y: number; vx: number; vy: number; captured: boolean } | null>(null);
 
   const clamp = (b: Box): Box => {
     const w = Math.min(Math.max(b.w, MAP_W / 9), MAP_W);
@@ -96,13 +54,25 @@ export function useZoomPan() {
     return () => el.removeEventListener('wheel', onWheel);
   }, []);
 
+  /**
+   * 🔴 pointerdown では **setPointerCapture してはいけない。**
+   *    捕獲すると続く pointerup の target が <path> ではなく <svg> になり、
+   *    click は pointerdown と pointerup の共通祖先（＝<svg>）に飛ぶ。
+   *    その結果、自治体 <path> の onClick が一度も呼ばれず「地図を押しても選べない」になる。
+   *    → 動き始めてから捕獲する。クリックとドラッグが両立する。
+   */
   const onPointerDown = (e: React.PointerEvent<SVGSVGElement>) => {
-    drag.current = { x: e.clientX, y: e.clientY, vx: vb.x, vy: vb.y };
-    e.currentTarget.setPointerCapture(e.pointerId);
+    drag.current = { x: e.clientX, y: e.clientY, vx: vb.x, vy: vb.y, captured: false };
   };
   const onPointerMove = (e: React.PointerEvent<SVGSVGElement>) => {
     const d = drag.current;
     if (!d) return;
+    if (!d.captured) {
+      // まだクリックかもしれない。4px 動くまでは捕獲もパンもしない
+      if (Math.hypot(e.clientX - d.x, e.clientY - d.y) < DRAG_SLOP) return;
+      e.currentTarget.setPointerCapture(e.pointerId);
+      d.captured = true;
+    }
     const r = e.currentTarget.getBoundingClientRect();
     setVb((v) =>
       clamp({ ...v, x: d.vx - ((e.clientX - d.x) / r.width) * v.w, y: d.vy - ((e.clientY - d.y) / r.height) * v.h }),
@@ -128,7 +98,14 @@ export function useZoomPan() {
     viewBox: `${vb.x} ${vb.y} ${vb.w} ${vb.h}`,
     /** 拡大率。1 = 全体。ラベルの出し分けと線幅の補正に使う */
     scale: MAP_W / vb.w,
-    handlers: { onPointerDown, onPointerMove, onPointerUp, onDoubleClick: reset },
+    handlers: {
+      onPointerDown,
+      onPointerMove,
+      onPointerUp,
+      // タッチで touch-action:pan-y に持っていかれると pointerup が来ない。取りこぼすと掴みっぱなしになる
+      onPointerCancel: onPointerUp,
+      onDoubleClick: reset,
+    },
     reset,
     zoomTo,
   };
