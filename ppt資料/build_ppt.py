@@ -1,11 +1,14 @@
 # -*- coding: utf-8 -*-
 """都知事杯オープンデータ・ハッカソン2026 — 2分プレゼン資料（5枚）を生成する。
 
-  1. 表層の課題（都の公開データで実測した規模）
+  1. 共働き世帯の課題の中での位置づけ（漏斗）＋ 規模の実測
   2. 構造的課題＝「小1の壁」の正体（増える需要／増えない受け皿／出ない数字）
   3. サービスとデモ
   4. データとロジック（何を結合し、どこまで測り、どこを測っていないか）
-  5. 今後の展望と意義
+  5. 展望（階段）— 解ける課題が広がる。それを支えるのは運用コストがゼロなこと
+
+1枚目の漏斗と5枚目の階段は同じ木を上下から見たもの。
+「機能を足す」ではなく「最初に見せた木を、この順で登る」にするための構造。
 
 参考にしたレイアウト：ppt資料/ の戦略コンサル2本
   アクションタイトル／2パネル＋細い縦罫／コールアウト＋引き出し線／出典行。
@@ -35,6 +38,7 @@ ACCENT_DEEP = RGBColor(0x0D, 0x36, 0x6B)
 ACCENT_MID  = RGBColor(0x55, 0x98, 0xE7)
 ACCENT_PALE = RGBColor(0x86, 0xB6, 0xEF)
 TINT        = RGBColor(0xEC, 0xF2, 0xFB)
+TINT2       = RGBColor(0xF4, 0xF7, 0xFC)
 INK         = RGBColor(0x1A, 0x1A, 0x1A)
 GREY        = RGBColor(0x5A, 0x5A, 0x5A)
 GREY_LT     = RGBColor(0x9A, 0x9A, 0x9A)
@@ -81,9 +85,10 @@ def put(tf, text, size, color=INK, bold=False, space_after=0, line_sp=None, alig
     return p
 
 
-def lines(tf, texts, size, color=INK, line_sp=1.35, space_after=0, bold=False):
+def lines(tf, texts, size, color=INK, line_sp=1.35, space_after=0, bold=False, align=None):
     for i, t in enumerate(texts):
-        put(tf, t, size, color, bold=bold, line_sp=line_sp, space_after=space_after, first=(i == 0))
+        put(tf, t, size, color, bold=bold, line_sp=line_sp,
+            space_after=space_after, align=align, first=(i == 0))
 
 
 def rect(slide, x, y, w, h, fill=None, outline=None, lw=1.0, dash=False, shape=MSO_SHAPE.RECTANGLE):
@@ -104,8 +109,9 @@ def rect(slide, x, y, w, h, fill=None, outline=None, lw=1.0, dash=False, shape=M
             ln.append(ln.makeelement(qn('a:prstDash'), {'val': 'dash'}))
     tf = s.text_frame
     tf.word_wrap = True
-    tf.margin_left = tf.margin_right = Inches(0.14)
-    tf.margin_top = tf.margin_bottom = Inches(0.08)
+    # 小さい図形（丸数字・チップ・0.055インチの罫）で余白が効くと文字が折り返す
+    tf.margin_left = tf.margin_right = Inches(0.14 if w > 1.2 else 0.02)
+    tf.margin_top = tf.margin_bottom = Inches(0.06 if h > 0.5 else 0.0)
     tf.vertical_anchor = MSO_ANCHOR.MIDDLE
     return s
 
@@ -178,39 +184,56 @@ def timeline(slide, YL, num_size=18, desc_size=13):
     put(g.text_frame, '6年', 21, ACCENT, bold=True, align=PP_ALIGN.CENTER, first=True)
 
 
-# ══ 1枚目：表層の課題（規模） ══════════════════════════
+# ══ 1枚目：課題の中での位置づけ（漏斗）＋ 規模 ═════════
 s1 = prs.slides.add_slide(BLANK)
-title(s1, '児童数が減っても、学童は足りなくなる',
+title(s1, '共働き世帯の両立を阻むものが、保育園から小学校に移った',
       '東京49自治体・2025年5月1日時点の実測と、受け皿を据え置いた場合の試算')
 
-TW = (CW - 0.60) / 3
+# 左：3段の漏斗
+_, tf = tb(s1, L, 1.92, 5.5, 0.28)
+put(tf, '共働き・子育て世帯が抱える課題', 12, GREY, bold=True, first=True)
+
+funnel = [
+    (L,        5.50, TINT2, GREY,       '仕事と育児の両立', 15, False),
+    (L + 0.40, 4.70, TINT,  ACCENT_DEEP, '小学校に上がる時点の断絶（「小1の壁」）', 14, False),
+    (L + 0.80, 3.90, ACCENT, WHITE,      'その街で、学童に入れるか　← v1 が解く', 14, True),
+]
+for i, (x, w, fill, col, txt, sz, bold) in enumerate(funnel):
+    y = 2.28 + i * 0.78
+    s = rect(s1, x, y, w, 0.60, fill=fill)
+    put(s.text_frame, txt, sz, col, bold=True, first=True)
+    if i < 2:
+        line(s1, x + 0.55, y + 0.60, x + 0.55, y + 0.78, color=ACCENT_MID, lw=1.75, arrow=True)
+
+_, tf = tb(s1, L, 4.78, 5.5, 0.62)
+lines(tf, ['保育所の待機は都の施策で大きく前進した。',
+           '次に来るのが、小学校に上がる時点の断絶'], 11.5, GREY, line_sp=1.35)
+
+line(s1, 6.42, 1.92, 6.42, 5.42, color=RULE, lw=1.0)
+
+# 右：規模の実測3数字
+_, tf = tb(s1, 6.72, 1.92, 5.99, 0.28)
+put(tf, 'その規模（都の公開データで実測）', 12, GREY, bold=True, first=True)
+
 tiles = [
-    ('146,393人', ['学童に登録している児童。',
-                   '公立小学校児童 589,912人の 4人に1人'], '2025年5月1日・49自治体'),
-    ('+5.9%', ['2年で増えた学童の需要（登録＋待機）。',
-               '同じ2年で児童数は −0.8%'], '2023年5月→2025年5月・48自治体'),
-    ('19,573人分', ['受け皿が今のままなら、',
-                    '2038年度に足りない'], '本サービスの試算・46/49自治体で不足'),
+    ('146,393人', '学童に登録している児童。公立小学校児童 589,912人の 4人に1人',
+     '2025年5月1日・49自治体'),
+    ('+5.9%', '2年で増えた学童の需要（登録＋待機）。同じ2年で児童数は −0.8%',
+     '2023年5月→2025年5月・48自治体'),
+    ('19,573人分', '受け皿が今のままなら、2038年度に足りない',
+     '本サービスの試算・46/49自治体で不足'),
 ]
 for i, (num, desc, note) in enumerate(tiles):
-    x = L + i * (TW + 0.30)
-    rect(s1, x, 2.05, TW, 0.055, fill=ACCENT)
-    rect(s1, x, 2.105, TW, 1.60, fill=TINT)
-    _, tf = tb(s1, x + 0.22, 2.28, TW - 0.44, 0.62)
-    put(tf, num, 32, ACCENT, bold=True, first=True)
-    _, tf = tb(s1, x + 0.22, 2.98, TW - 0.44, 0.52)
-    lines(tf, desc, 11.5, INK, line_sp=1.3)
-    _, tf = tb(s1, x + 0.22, 3.46, TW - 0.44, 0.24)
-    put(tf, note, 9, GREY_LT, first=True)
+    y = 2.28 + i * 1.08
+    rect(s1, 6.72, y, 0.055, 0.92, fill=ACCENT)
+    rect(s1, 6.775, y, 5.935, 0.92, fill=TINT)
+    _, tf = tb(s1, 6.95, y + 0.10, 2.15, 0.42)
+    put(tf, num, 24, ACCENT, bold=True, first=True)
+    _, tf = tb(s1, 9.20, y + 0.10, 3.35, 0.72)
+    put(tf, desc, 10.5, INK, line_sp=1.3, space_after=2, first=True)
+    put(tf, note, 8.5, GREY_LT, line_sp=1.2)
 
-_, tf = tb(s1, L, 4.30, CW, 0.9, align=PP_ALIGN.CENTER)
-put(tf, 'これは、表に出ている数字だけ', 20, ACCENT_DEEP, bold=True,
-    align=PP_ALIGN.CENTER, space_after=8, first=True)
-put(tf, '待機児童数を見ても順位は付かない — 49自治体のうち19はゼロ。'
-        '申込前に断念した人は、登録にも待機にも計上されない',
-    14, GREY, align=PP_ALIGN.CENTER, line_sp=1.4)
-
-kicker(s1, 5.80, '保育園の壁は下がった。壁が消えたのではなく、小学校に移っただけ。')
+kicker(s1, 5.72, '保育園の壁は下がった。壁が消えたのではなく、小学校に移っただけ。')
 footer(s1, 1, '出典：東京都福祉局「東京の学童クラブ事業実施状況」／東京都教育庁「教育人口等推計」'
               '（東京都オープンデータカタログ・CC BY 4.0）。'
               '需要の伸びは、計上方法が変わった江戸川区を除く48自治体で実測')
@@ -362,52 +385,56 @@ for i, (h, b) in enumerate([
 footer(s4, 4, SOURCE + '。バックテストは src/core/backtest.ts と npm test で再現できる')
 
 
-# ══ 5枚目：展望と意義 ═════════════════════════════════
+# ══ 5枚目：展望（階段）＋ それを支える土台 ═════════════
 s5 = prs.slides.add_slide(BLANK)
-title(s5, '学童は1本目の軸。同じ器に足していける',
-      '同じ計算・同じ画面が、住む場所を決める住民にも、受け皿を整える自治体にも使える')
+title(s5, '同じ器のまま、解ける課題を上に広げていく',
+      '1枚目の木を、この順で登る。器（Indicator 配列）は変えず、軸を足すだけ')
 
-VW = (CW - 0.60) / 3
-views = [
-    ('軸を足す', [
-        'v1 の軸は学童1本（weight 1.0）。',
-        '通勤時間・住宅価格帯・学区評価は',
-        '同じ Indicator 配列に足すだけで、',
-        '画面もヒートマップも変更が要らない。',
-    ], '要件 FR-9 ／ src/core/indicators/'),
-    ('使い手が広がる', [
-        '住民：住宅ローンを組む前に、',
-        '　　　6年先まで見て決める。',
-        '自治体：学童整備計画の需給見通しに、',
-        '　　　　同じ数字をそのまま使える。',
-    ], '行政と住民が同じ画面を見る'),
-    ('更新が続く', [
-        '使うのは毎年更新される都の公式データだけ。',
-        'APIキーもDBもサーバーも持たないので、',
-        '年1回データを差し替えれば動き続ける。',
-        '運用コストは実質ゼロ。',
-    ], '静的配信 501KB ／ gzip 161KB'),
+SBW = 3.81
+steps = [
+    ('STEP 1', 'いま（v1）', 'その街で、学童に入れるか',
+     ['学童の受け皿リスクを', '49自治体 × 12年度で比べる']),
+    ('STEP 2', '次', 'その街で、両立を続けられるか',
+     ['通勤時間・保育園の空き・学区を', '同じ器に軸として足す']),
+    ('STEP 3', 'その先', 'どの街に、どれだけ受け皿が要るか',
+     ['使い手が住民から自治体へ。', '整備計画の需給見通しに同じ数字を']),
 ]
-for i, (head, body, note) in enumerate(views):
-    x = L + i * (VW + 0.30)
-    rect(s5, x, 2.10, VW, 0.055, fill=ACCENT)
-    rect(s5, x, 2.155, VW, 2.30, fill=TINT)
-    _, tf = tb(s5, x + 0.24, 2.34, VW - 0.48, 0.36)
-    put(tf, head, 17, ACCENT, bold=True, first=True)
-    _, tf = tb(s5, x + 0.24, 2.86, VW - 0.48, 1.24)
-    lines(tf, body, 11, INK, line_sp=1.38)
-    _, tf = tb(s5, x + 0.24, 4.14, VW - 0.48, 0.24)
-    put(tf, note, 9, GREY_LT, first=True)
+for i, (chip, when, q, body) in enumerate(steps):
+    x = L + i * (SBW + 0.33)
+    y = 3.66 - i * 0.76
+    accent_col = ACCENT if i == 0 else ACCENT_MID
+    rect(s5, x, y, SBW, 0.055, fill=accent_col)
+    rect(s5, x, y + 0.055, SBW, 1.42, fill=TINT if i == 0 else TINT2)
+    c = rect(s5, x + 0.20, y + 0.18, 0.86, 0.26, fill=accent_col)
+    put(c.text_frame, chip, 9, WHITE, bold=True, align=PP_ALIGN.CENTER, first=True)
+    _, tf = tb(s5, x + 1.14, y + 0.20, SBW - 1.34, 0.24)
+    put(tf, when, 10, GREY, first=True)
+    _, tf = tb(s5, x + 0.20, y + 0.52, SBW - 0.40, 0.36)
+    put(tf, q, 14, ACCENT_DEEP, bold=True, line_sp=1.2, first=True)
+    _, tf = tb(s5, x + 0.20, y + 0.96, SBW - 0.40, 0.44)
+    lines(tf, body, 10, INK, line_sp=1.3)
+    if i < 2:
+        line(s5, x + SBW + 0.04, y + 0.40, x + SBW + 0.29, y - 0.30,
+             color=ACCENT_MID, lw=2.0, arrow=True)
 
-_, tf = tb(s5, L, 4.80, CW, 0.9, align=PP_ALIGN.CENTER)
-put(tf, '都が持っているのに比べられなかったデータを、住民の意思決定に使える形にする',
-    17, ACCENT_DEEP, bold=True, align=PP_ALIGN.CENTER, space_after=8, first=True)
-put(tf, '「調べる時間を短縮する」サービスではありません。'
-        '取り返しのつかない選択を、自分の手で確かめてから下ろすための道具です',
-    13, GREY, align=PP_ALIGN.CENTER, line_sp=1.4)
+# 階段を支える土台
+rect(s5, L, 5.32, CW, 0.055, fill=ACCENT_DEEP)
+base = rect(s5, L, 5.375, CW, 1.10, fill=TINT)
+_, tf = tb(s5, L + 0.28, 5.50, 4.4, 0.34)
+put(tf, 'この階段を登れる理由', 14, ACCENT_DEEP, bold=True, first=True)
+_, tf = tb(s5, L + 0.28, 5.88, 5.6, 0.50)
+lines(tf, ['使うのは毎年更新される都の公式データだけ。',
+           'APIキーもDBもサーバーも持たない'], 10.5, INK, line_sp=1.32)
+line(s5, 6.60, 5.50, 6.60, 6.30, color=RULE, lw=1.0)
+_, tf = tb(s5, 6.85, 5.50, 5.60, 0.90)
+lines(tf, ['年1回データを差し替えれば動き続ける（静的配信 501KB／gzip 161KB）。',
+           '軸を足しても画面もヒートマップも変更が要らない（要件 FR-9）。',
+           '運用コストは実質ゼロ。作った人が抜けても止まらない。'],
+      10.5, INK, line_sp=1.32)
 
-kicker(s5, 6.00, '一年生になったら、その街はどうなっているか。先に、見にいける。', size=16)
-footer(s5, 5)
+kicker(s5, 6.60, '一年生になったら、その街はどうなっているか。先に、見にいける。', size=15)
+footer(s5, 5, '出典：東京都オープンデータカタログ（CC BY 4.0）。'
+              '配信サイズは npm run build の実測値')
 
 
 # ── 全ランに Meiryo UI（latin / ea / cs）を焼き込む ──
@@ -426,6 +453,6 @@ for sl in prs.slides:
         if sh.has_chart:
             stamp(sh.chart._chartSpace)
 
-out = 'ppt資料/2分プレゼン_v2.pptx'
+out = 'ppt資料/2分プレゼン_v3.pptx'
 prs.save(out)
 print('saved:', out, '/ 5 slides')
