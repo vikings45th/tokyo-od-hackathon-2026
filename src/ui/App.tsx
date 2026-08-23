@@ -140,12 +140,33 @@ export default function App() {
           <h1 className="rise" ref={rise}>
             保育園には、入れた。
             <br />
-            <em>次の壁は、小学校にある。</em>
+            <em>小1の壁は、どこにある？</em>
           </h1>
           <p className="lede rise" ref={rise}>
             学童に入れないと、親のどちらかが仕事を減らすことになる。
             <br />
             そしてそれは、家を決めたあとでは動かせない。
+          </p>
+          {/* front-load：ファーストビューで「何ができるか」を出す。
+              文がそのまま入力になるので、ヒーローの静けさを壊さない。
+              birthYear は S4 と同じ state を共有している */}
+          <p className="heroq rise" ref={rise}>
+            <select
+              className="pick"
+              value={birthYear}
+              aria-label="子の生まれ年"
+              onChange={(e) => setBirthYear(Number(e.target.value))}
+            >
+              {Array.from({ length: 13 }, (_, i) => 2019 + i).map((y) => (
+                <option key={y} value={y}>
+                  {y}
+                </option>
+              ))}
+            </select>
+            年生まれの子が小1になるのは <b>{focusYear}年度</b>
+            <a className="heroq-go" href="#s4">
+              その年の49自治体を見る →
+            </a>
           </p>
         </div>
         <div className="scrollhint">
@@ -328,6 +349,7 @@ export default function App() {
                 scale={zp.scale}
               />
               <div className="legend">
+                <span>入れない割合</span>
                 <span>低</span>
                 <span className="bar">
                   {palette.ramp.map((c, i) => (
