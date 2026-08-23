@@ -36,11 +36,16 @@ const SERIES_COLORS: Record<Theme, { demand: string; supply: string }> = {
   dark: { demand: '#4a90e2', supply: '#c98410' },
 };
 
-/** v 以上でいちばん近い「1・2・2.5・5 × 10^n」。目盛りが半端な数にならないように */
+/**
+ * v 以上でいちばん近いきりのいい数。目盛りが半端にならないように。
+ *
+ * ⚠️ 刻みを 1・2・2.5・5 だけにすると、2,704 が 5,000 まで飛んで
+ *    グラフの上半分が丸ごと空く。3・4 を挟んで、そこそこ詰まるようにする。
+ */
 function niceCeil(v: number): number {
   if (!(v > 0)) return 1;
   const mag = 10 ** Math.floor(Math.log10(v));
-  for (const f of [1, 2, 2.5, 5, 10]) if (v <= f * mag) return f * mag;
+  for (const f of [1, 1.5, 2, 2.5, 3, 4, 5, 6, 8, 10]) if (v <= f * mag) return f * mag;
   return 10 * mag;
 }
 

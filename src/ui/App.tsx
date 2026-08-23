@@ -30,6 +30,7 @@ import type { Muni, Scenario, Source } from '../types';
 import { BIN_LABELS, PALETTES, binOf, fillOf, type Palette } from './palette';
 import { Choropleth } from './Choropleth';
 import { Series } from './Series';
+import { HeroMark } from './HeroMark';
 import { DATA, GEO, GEO_SOURCE, TREND, compute, fmt, missingMunis, pt } from './data';
 import { bboxOf } from './geo';
 import { useTheme, useZoomPan } from './hooks';
@@ -369,16 +370,28 @@ export default function App() {
         {/* ── #lede ── 表紙にしない。1画面は占有させない ── */}
         <section id="lede">
           <div className="read">
-            <h1>
-              保育園には、入れた。
-              <br />
-              <em>小1の壁は、どこにある？</em>
-            </h1>
-            <p className="lede">
-              学童に入れないと、親のどちらかが働き方を変えることになる。
-              そしてそれは、家を決めたあとでは動かせない。
-            </p>
-            <div className="tl">
+            <HeroMark />
+            <div>
+              <h1>
+                保育園には、入れた。
+                <br />
+                <em>小1の壁は、どこにある？</em>
+              </h1>
+              {/* 🔴 「親のどちらかが働き方を変える」から始めない。
+                  読者が学童の意味を知っていること・家を買おうとしていることを前提にしていて、
+                  初見だと唐突。学童とは何か → 何が起きるか → このページは何をするか、の順にする。 */}
+              <p className="lede">
+                小学校に上がると、放課後の預け先は保育園から「<b>学童クラブ</b>」に変わります。
+                定員に入れなかったとき、保育園のような次の受け皿がありません。
+              </p>
+              <p className="lede">
+                このページは、東京都の公式データから{' '}
+                <b className="tab">
+                  {core.munis.length}自治体 × {core.years.length}年度
+                </b>{' '}
+                の学童の過不足を予測して、あなたの子が小1になる年の地図にするものです。
+              </p>
+              <div className="tl">
               <div className="line" />
               <div className="fill" />
               <div className="pt" style={{ left: 0 }}>
@@ -388,7 +401,7 @@ export default function App() {
                 2026
               </div>
               <div className="cap" style={{ left: 0 }}>
-                いま。家を決める
+                いま。住む場所を決める
               </div>
               <div className="mid">{Math.max(0, rawFocus - 2026)}年</div>
               <div className="pt" style={{ left: 'calc(100% - 15px)' }}>
@@ -401,12 +414,13 @@ export default function App() {
                 小1。学童の抽選
               </div>
             </div>
-            {outOfRange && (
-              <p className="outrange">
-                {rawFocus}年度は、都の推計が届く範囲（{firstYear}〜{lastYear}年度）の外です。
-                この先の地図と表は、端の{focusYear}年度を出します。
-              </p>
-            )}
+              {outOfRange && (
+                <p className="outrange">
+                  {rawFocus}年度は、都の推計が届く範囲（{firstYear}〜{lastYear}年度）の外です。
+                  この先の地図と表は、端の{focusYear}年度を出します。
+                </p>
+              )}
+            </div>
           </div>
         </section>
 
@@ -421,6 +435,7 @@ export default function App() {
                 </p>
                 <p className="wt">
                   あなたの子が小1になるのは{rawFocus}年度です。その年の見通しは、どこにも載っていません。
+                  入れなかったときは、民間学童の費用を負担するか、家庭のどちらかが働き方を変えるかになります。
                 </p>
               </div>
               <div>
@@ -482,7 +497,7 @@ export default function App() {
           <div className="wide">
             <div className="secthd">
               <h2>
-                <span className="tab">{viewYear}</span>年度、東京49自治体。
+                <span className="tab">{viewYear}</span>年度、学童に入れない子がどれくらい出るか。
               </h2>
               {/* ズームは地図に重ねない。拡大・移動すると地形と重なって読めなくなる */}
               <div className="zoombar">
@@ -682,8 +697,7 @@ export default function App() {
 
             {/* 🔴 単軸しか持っていない。総合おすすめを名乗らない（docs/13 §4） */}
             <p className="cdisclaimer">
-              この順位は<b>学童の受け皿だけ</b>を見たものです。通勤時間・家賃・保育園の入りやすさは
-              含んでいません。住む場所を決める材料の1つとして使ってください。
+              この順位は<b>学童の受け皿だけ</b>を見たものです。通勤時間・家賃・保育園の入りやすさは含んでいません。
             </p>
           </div>
         </section>
@@ -692,8 +706,11 @@ export default function App() {
         <section id="muni">
           <div className="wide">
             <div className="secthd">
-              <h2>{sel ?? '—'} を、くわしく。</h2>
-              <span className="pmeta">必要な数と、入れる数（人）</span>
+              <h2>{sel ?? '—'}で、学童が要る子と入れる子はどう動くか。</h2>
+              {/* グラフ自身が「必要な数と、入れる数（人）」を出すので、ここでは範囲だけ言う */}
+              <span className="pmeta">
+                {firstYear}〜{lastYear}年度
+              </span>
             </div>
 
             {note && (
@@ -713,7 +730,7 @@ export default function App() {
               </div>
             )}
 
-            {sel && <Series core={core} muni={sel} theme={theme} w={860} h={320} />}
+            {sel && <Series core={core} muni={sel} theme={theme} w={1280} h={340} />}
 
             <p className="k" style={{ marginTop: 30, marginBottom: 4 }}>
               引っ越し先を変える以外に、打てる手。
@@ -730,14 +747,14 @@ export default function App() {
         <section id="heat">
           <div className="wide">
             <div className="secthd">
-              <h2>いつ、そうなるか。</h2>
+              <h2>どの自治体が、いつから足りなくなるか。</h2>
               <span className="pmeta">
                 {core.munis.length}自治体 × {core.years.length}年度 ＝{' '}
                 {core.munis.length * core.years.length}セル
               </span>
             </div>
-            <div className="heatwrap">
-              <div className="grid">
+            {/* 🔴 表を地図と同じ全幅にする。読み方の注記は右柱ではなく表の下 */}
+            <div className="grid">
                 <div />
                 {core.years.map((y) => (
                   <div
@@ -747,36 +764,35 @@ export default function App() {
                     {String(y).slice(2)}
                   </div>
                 ))}
-                {heatRows.map((m) => (
-                  <Row
-                    key={m}
-                    muni={m}
-                    core={core}
-                    sel={sel}
-                    viewYear={viewYear}
-                    palette={palette}
-                    onSelect={setSelected}
-                  />
-                ))}
-              </div>
-              <div className="heatnote">
-                <p>
-                  行＝自治体、列＝入学年度、セルの数字＝入れない割合（%）。
-                  自治体名を押すと、上の地図とグラフがその自治体に切り替わります。
-                </p>
-                <p>枠が付いている列が、いま地図が見ている{viewYear}年度です。</p>
-                <p className="bridge-note">
-                  <i />
-                  <span>
-                    {core.bridgeFrom}年度から右は、全都の公式推計の伸びで接続した
-                    <strong>推定</strong>です（区市町村別の公式推計は{core.bridgeFrom - 1}年度まで。
-                    この区間の誤差は実測していません）
-                  </span>
-                </p>
-                <button className="more-btn" onClick={() => setExpanded((v) => !v)}>
-                  {expanded ? '上位10件に戻す' : `${core.munis.length}自治体すべて表示`}
-                </button>
-              </div>
+              {heatRows.map((m) => (
+                <Row
+                  key={m}
+                  muni={m}
+                  core={core}
+                  sel={sel}
+                  viewYear={viewYear}
+                  palette={palette}
+                  onSelect={setSelected}
+                />
+              ))}
+            </div>
+            <div className="heatnote">
+              <p>
+                行＝自治体、列＝入学年度、セルの数字＝入れない割合（%）。自治体名を押すと、
+                上の地図とグラフがその自治体に切り替わります。枠が付いている列が、
+                いま地図が見ている{viewYear}年度です。
+              </p>
+              <p className="bridge-note">
+                <i />
+                <span>
+                  {core.bridgeFrom}年度から右は、全都の公式推計の伸びで接続した
+                  <strong>推定</strong>です（区市町村別の公式推計は{core.bridgeFrom - 1}年度まで。
+                  この区間の誤差は実測していません）
+                </span>
+              </p>
+              <button className="more-btn" onClick={() => setExpanded((v) => !v)}>
+                {expanded ? '上位10件に戻す' : `${core.munis.length}自治体すべて表示`}
+              </button>
             </div>
           </div>
         </section>
@@ -785,7 +801,7 @@ export default function App() {
         <section id="scenario">
           <div className="wide">
             <div className="secthd">
-              <h2>条件を変えて計算する。</h2>
+              <h2>前提を変えると、どう変わるか。</h2>
               <span className="pmeta">
                 いまの仮定 <span className="eq tab">{pt(core.scenario.trend)}</span>／年
                 {offMeasured && (
@@ -815,7 +831,7 @@ export default function App() {
                 「学童を使う子の割合が年に何pt上がるか」を、家を探している親が判断できるはずがない。
                 主導線はプリセット（それぞれ description に根拠がある）にして、
                 スライダーは「自分で動かす」を開いた人にだけ出す。 */}
-            <details className="tweak">
+            <details className="tweak" open>
               <summary>自分で仮定を変える</summary>
               <div className="tweakbody">
                 <span className="k">学童を使う子の割合は毎年</span>
@@ -888,6 +904,13 @@ export default function App() {
               {core.bridgeFrom}年度以降は、都の公式推計どうしを接続した推定であることを、
               地図の「推定」表示とヒートマップのハッチで区別しています。
             </p>
+            {/* 🔴 出典（＝どこから来たか）ではなく、作り方の信頼性の話なので #evidence に置く */}
+            <p className="joinnote">
+              4種類のデータは、すべて <b>muni_code（全国地方公共団体コード5桁）</b>{' '}
+              で結合しています。自治体名の表記ゆれ（「東京都府中市」と「府中市」など）を
+              一度も踏んでいないのはこのためです。計算はすべてブラウザの中で走っていて、
+              サーバーに送っているデータはありません。
+            </p>
           </div>
         </section>
 
@@ -916,16 +939,6 @@ export default function App() {
                 </div>
               ))}
               <p className="srcnote">本サービスは上記データを加工して作成しています。</p>
-              <p className="joinnote">
-                4種類のデータは、すべて <b>muni_code（全国地方公共団体コード5桁）</b>{' '}
-                で結合しています。自治体名の表記ゆれ（「東京都府中市」と「府中市」など）を
-                一度も踏んでいないのはこのためです。出力は{' '}
-                <b className="tab">
-                  {core.munis.length}自治体 × {core.years.length}年度 ＝{' '}
-                  {core.munis.length * core.years.length}セル
-                </b>
-                。計算はすべてブラウザの中で走っていて、サーバーに送っているデータはありません。
-              </p>
             </div>
           </div>
         </section>
