@@ -100,6 +100,10 @@ h2{font-size:var(--fs-h2);font-weight:800;letter-spacing:-.035em;line-height:1.3
 #lede{padding-top:46px;min-height:52vh;display:flex;flex-direction:column;justify-content:center}
 #lede h1 em{font-style:normal;color:var(--accent)}
 #lede .lede{margin-top:18px}
+#lede .lede b{color:var(--ink-1);font-weight:800}
+/* 🔴 図版は h1 の「上」。横に並べると 660px の読む幅が 400px まで潰れて、
+      h1 が「保育園には、入れ／た。」と割れる。 */
+.heromark{display:block;width:108px;height:108px;margin:0 0 14px -6px;color:var(--ink-2)}
 .outrange{margin-top:14px;font-size:13px;color:var(--warn);font-weight:700}
 
 /* 意思決定と痛みのあいだの年数。旧S1の全画面タイムラインを1行に縮めたもの */
@@ -235,7 +239,7 @@ h2{font-size:var(--fs-h2);font-weight:800;letter-spacing:-.035em;line-height:1.3
 .crow .cv{font-size:14px;font-weight:800;text-align:right;min-width:38px}
 .cnote{margin-top:12px;font-size:12px;color:var(--ink-3)}
 .cdisclaimer{margin-top:30px;padding-top:16px;border-top:1px solid var(--hair);
-  font-size:13px;color:var(--ink-2);line-height:1.8;max-width:56em}
+  font-size:13px;color:var(--ink-2);line-height:1.8}
 .cdisclaimer b{color:var(--ink-1)}
 
 /* ── #muni ── 数字は上に出ているので、ここは読み方 ── */
@@ -254,7 +258,8 @@ details.more p{margin-top:7px;font-size:13px;color:var(--ink-3);max-width:46em}
 .advices li{list-style:disc}
 
 /* 需要と受け入れの折れ線 */
-.series{margin-top:24px;max-width:880px}
+/* 🔴 地図と同じ全幅。viewBox の幅は呼び出し側で実寸に合わせている（w={1280}） */
+.series{margin-top:24px}
 .series svg{width:100%;height:auto;display:block;overflow:visible}
 .series .ax{stroke:var(--hair);stroke-width:1}
 .series .lbl{fill:var(--ink-3);font-size:13px}
@@ -271,15 +276,15 @@ details.more p{margin-top:7px;font-size:13px;color:var(--ink-3);max-width:46em}
 .series-tip b{color:var(--ink-1);font-weight:700}
 
 /* ── #heat ── 表（左）と、その読み方（右） ── */
-.heatwrap{display:grid;grid-template-columns:minmax(0,880px) 300px;gap:38px;align-items:start}
-.grid{display:grid;grid-template-columns:88px repeat(12,1fr);gap:3px;align-items:center}
+/* 🔴 表も地図と同じ全幅。読み方の注記は右柱ではなく表の下（.heatnote） */
+.grid{display:grid;grid-template-columns:130px repeat(12,1fr);gap:4px;align-items:center}
 .gh{font-size:11.5px;color:var(--ink-3);text-align:center}
 .gh.br{color:var(--accent);font-weight:700}
-.gn{font-size:13px;color:var(--ink-2);text-align:right;padding-right:8px;white-space:nowrap;
+.gn{font-size:13.5px;color:var(--ink-2);text-align:right;padding-right:10px;white-space:nowrap;
   overflow:hidden;text-overflow:ellipsis;cursor:pointer}
 .gn:hover{color:var(--ink-1)}
 .gn.on{color:var(--accent);font-weight:800}
-.c{height:26px;border-radius:3px;font-size:11.5px;font-weight:700;
+.c{height:30px;border-radius:3px;font-size:12px;font-weight:700;
   display:flex;align-items:center;justify-content:center}
 .c.br{background-image:repeating-linear-gradient(45deg,rgba(var(--scrim),.40) 0 1px,transparent 1px 5px)}
 /* bridged の始まり。ハッチだけだと縮小時に見えないので縦の区切りを引く */
@@ -288,8 +293,11 @@ details.more p{margin-top:7px;font-size:13px;color:var(--ink-3);max-width:46em}
 /* いま見ている年度の列。地図と表を同じ時計で動かしていることを示す */
 .gh.now{color:var(--ink-1);font-weight:800}
 .c.now{outline:1px solid var(--ink-1);outline-offset:-1px}
-.heatnote{font-size:12.5px;color:var(--ink-3);line-height:1.75}
-.heatnote p{margin-bottom:14px}
+/* 表の下。横に流して、表の高さを食わないようにする */
+.heatnote{margin-top:16px;padding-top:14px;border-top:1px solid var(--hair);
+  display:flex;align-items:flex-start;gap:26px;flex-wrap:wrap;
+  font-size:12.5px;color:var(--ink-3);line-height:1.75}
+.heatnote p{margin:0;max-width:42em}
 .heatnote .bridge-note{display:flex;align-items:flex-start;gap:7px}
 .heatnote .bridge-note i{display:inline-block;width:2px;height:11px;background:var(--accent);
   margin-top:5px;flex:none}
@@ -343,7 +351,7 @@ details.more p{margin-top:7px;font-size:13px;color:var(--ink-3);max-width:46em}
 .srclist a:hover{border-bottom-color:var(--ink-3)}
 .srcmeta{margin-left:9px;color:var(--ink-3)}
 .srcnote{margin:14px 0 0}
-.joinnote{margin-top:18px;padding-top:16px;border-top:1px solid var(--hair);
+.joinnote{margin-top:24px;padding-top:18px;border-top:1px solid var(--hair);
   font-size:13.5px;color:var(--ink-2);line-height:1.85}
 .joinnote b{color:var(--ink-1)}
 
@@ -360,9 +368,8 @@ details.more p{margin-top:7px;font-size:13px;color:var(--ink-3);max-width:46em}
    ══════════════════════════════════════════════════════════ */
 @media (max-width:1280px){
   :root{--gut:26px}
-  .heatwrap{grid-template-columns:minmax(0,1fr) 260px;gap:30px}
   .choosegrid{gap:32px}
-  .grid{grid-template-columns:74px repeat(12,1fr);gap:2px}
+  .grid{grid-template-columns:104px repeat(12,1fr);gap:3px}
 }
 
 /* ══════════════════════════════════════════════════════════
@@ -374,9 +381,12 @@ details.more p{margin-top:7px;font-size:13px;color:var(--ink-3);max-width:46em}
   body{padding-top:var(--bar-h)}
   section{padding:40px 0}
   #lede{min-height:auto;padding-top:34px}
-  .heatwrap,.choosegrid{grid-template-columns:1fr;gap:26px}
+  .choosegrid{grid-template-columns:1fr;gap:26px}
   /* 地図の縦横比そのまま。vh で切ると上下に無駄な余白が出る（実測 900:520） */
   .mapstage{height:auto;aspect-ratio:900/520}
+  /* 🔴 自治体名は出さない。390px幅だと画面上4px相当になって読めない */
+  .mapstage text{display:none}
+  .heromark{width:84px;height:84px;margin-bottom:10px}
   .legend{flex-wrap:wrap}
   .legend .hint{flex-basis:100%;margin-left:0;text-align:left}
   .selbar{gap:14px}

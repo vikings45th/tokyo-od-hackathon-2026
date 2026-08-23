@@ -34,6 +34,8 @@ export interface MuniShape {
   d: string;
   /** ラベル置き場（重心） */
   centroid: [number, number];
+  /** 投影後の面積。ラベルを重ねずに置くとき「大きい自治体から先に置く」ために使う */
+  area: number;
   /** 地理的に隣接する自治体名 */
   neighbors: string[];
 }
@@ -79,6 +81,7 @@ export function buildGeo(topo: unknown): GeoIndex {
       name: f.properties.name,
       d: path(f as never) ?? '',
       centroid: [c[0], c[1]],
+      area: path.area(f as never),
       neighbors: nb[i].map((j) => fc.features[j].properties.name),
     };
   });
