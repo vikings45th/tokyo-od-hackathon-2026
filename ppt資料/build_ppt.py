@@ -1,14 +1,21 @@
 # -*- coding: utf-8 -*-
-"""都知事杯オープンデータ・ハッカソン2026 — 2分プレゼン資料（4枚）を生成する。
+"""都知事杯オープンデータ・ハッカソン2026 — 2分プレゼン資料（5枚）を生成する。
+
+  1. 表層の課題（都の公開データで実測した規模）
+  2. 構造的課題＝「小1の壁」の正体（増える需要／増えない受け皿／出ない数字）
+  3. サービスとデモ
+  4. データとロジック（何を結合し、どこまで測り、どこを測っていないか）
+  5. 今後の展望と意義
 
 参考にしたレイアウト：ppt資料/ の戦略コンサル2本
-  - アクションタイトル（結論を1文・上部・アクセント色）
-  - 2パネル＋細い縦罫
-  - コールアウト箱＋引き出し線
-  - 出典行（左下・極小グレー）
-密度は真似しない。あれは委員が手元で読む資料、こちらは2分動画で「見る」もの。
+  アクションタイトル／2パネル＋細い縦罫／コールアウト＋引き出し線／出典行。
+  密度は真似しない。あれは委員が手元で読む資料、こちらは2分動画で「見る」もの。
+
+🔴 数字はすべて data/app/data.json（都の公開データ）と src/core の実測値。
+   測っていないことを測ったように書かないこと。
 
 フォントは Meiryo UI（欧文 latin ／ 和文 ea ／ 記号 cs のすべて）。
+サービス名を変えるときは SERVICE を書き換えて再生成する。
 """
 from pptx import Presentation
 from pptx.util import Inches, Pt
@@ -19,12 +26,14 @@ from pptx.chart.data import CategoryChartData
 from pptx.enum.chart import XL_CHART_TYPE, XL_LABEL_POSITION
 from pptx.oxml.ns import qn
 
+SERVICE = '小1のまち'
 FONT = 'Meiryo UI'
+
 # src/ui/palette.ts の実配色に合わせる（スライドと実画面の色を一致させる）
-ACCENT      = RGBColor(0x1C, 0x5C, 0xAB)   # #1c5cab
-ACCENT_DEEP = RGBColor(0x0D, 0x36, 0x6B)   # #0d366b
-ACCENT_MID  = RGBColor(0x55, 0x98, 0xE7)   # #5598e7
-ACCENT_PALE = RGBColor(0x86, 0xB6, 0xEF)   # #86b6ef
+ACCENT      = RGBColor(0x1C, 0x5C, 0xAB)
+ACCENT_DEEP = RGBColor(0x0D, 0x36, 0x6B)
+ACCENT_MID  = RGBColor(0x55, 0x98, 0xE7)
+ACCENT_PALE = RGBColor(0x86, 0xB6, 0xEF)
 TINT        = RGBColor(0xEC, 0xF2, 0xFB)
 INK         = RGBColor(0x1A, 0x1A, 0x1A)
 GREY        = RGBColor(0x5A, 0x5A, 0x5A)
@@ -72,6 +81,11 @@ def put(tf, text, size, color=INK, bold=False, space_after=0, line_sp=None, alig
     return p
 
 
+def lines(tf, texts, size, color=INK, line_sp=1.35, space_after=0, bold=False):
+    for i, t in enumerate(texts):
+        put(tf, t, size, color, bold=bold, line_sp=line_sp, space_after=space_after, first=(i == 0))
+
+
 def rect(slide, x, y, w, h, fill=None, outline=None, lw=1.0, dash=False, shape=MSO_SHAPE.RECTANGLE):
     s = slide.shapes.add_shape(shape, Inches(x), Inches(y), Inches(w), Inches(h))
     s.shadow.inherit = False
@@ -108,12 +122,12 @@ def line(slide, x1, y1, x2, y2, color=RULE, lw=1.0, arrow=False):
     return c
 
 
-def title(slide, text, sub=None):
+def title(slide, text, sub=None, size=26):
     _, tf = tb(slide, L, 0.40, CW, 1.05)
-    put(tf, text, 26, ACCENT, bold=True, line_sp=1.22, first=True)
+    put(tf, text, size, ACCENT, bold=True, line_sp=1.22, first=True)
     if sub:
-        _, tf2 = tb(slide, L, 1.44, CW, 0.34)
-        put(tf2, sub, 12.5, GREY, first=True)
+        _, tf2 = tb(slide, L, 1.34, CW, 0.40)
+        put(tf2, sub, 12.5, GREY, line_sp=1.3, first=True)
 
 
 def footer(slide, n, source=SOURCE):
@@ -126,9 +140,8 @@ def footer(slide, n, source=SOURCE):
 def placeholder(slide, x, y, w, h, label, note):
     """実画面のキャプチャを貼る枠。貼ったらこの図形は削除する。"""
     s = rect(slide, x, y, w, h, fill=TINT, outline=ACCENT_MID, lw=1.25, dash=True)
-    tf = s.text_frame
-    put(tf, label, 15, ACCENT, bold=True, align=PP_ALIGN.CENTER, space_after=5, first=True)
-    put(tf, note, 10.5, GREY, align=PP_ALIGN.CENTER, line_sp=1.4)
+    put(s.text_frame, label, 15, ACCENT, bold=True, align=PP_ALIGN.CENTER, space_after=5, first=True)
+    put(s.text_frame, note, 10.5, GREY, align=PP_ALIGN.CENTER, line_sp=1.4)
     return s
 
 
@@ -138,142 +151,187 @@ def band(slide, x, y, w, text, fill=ACCENT):
     return s
 
 
-def kicker(slide, y, text):
+def kicker(slide, y, text, size=16):
     s = rect(slide, L, y, CW, 0.62, fill=TINT)
-    put(s.text_frame, text, 16, ACCENT_DEEP, bold=True, align=PP_ALIGN.CENTER, first=True)
+    put(s.text_frame, text, size, ACCENT_DEEP, bold=True, align=PP_ALIGN.CENTER, first=True)
     return s
 
 
-# ── 1枚目：課題の大きさ（実測）＋6年のズレ ───────────
+def timeline(slide, YL, num_size=18, desc_size=13):
+    """家を買う年と、学童に入れない年の6年のズレ。"""
+    line(slide, 1.55, YL, 11.75, YL, color=RULE, lw=2.0)
+    for cx, col, year, desc, dark in [
+        (2.45, GREY_LT, '2026年', '第一子が0歳。住宅ローンを組む', False),
+        (10.85, ACCENT, '2032年 4月', '子が小1。学童に入れない', True),
+    ]:
+        d = 0.28
+        rect(slide, cx - d / 2, YL - d / 2, d, d, fill=col, shape=MSO_SHAPE.OVAL)
+        _, tf = tb(slide, cx - 1.9, YL - 0.82, 3.8, 0.40,
+                   align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.BOTTOM)
+        put(tf, year, num_size, ACCENT_DEEP if dark else GREY, bold=True,
+            align=PP_ALIGN.CENTER, first=True)
+        _, tf = tb(slide, cx - 1.9, YL + 0.26, 3.8, 0.4, align=PP_ALIGN.CENTER)
+        put(tf, desc, desc_size, INK if dark else GREY, bold=dark,
+            align=PP_ALIGN.CENTER, first=True)
+    line(slide, 4.35, YL, 10.58, YL, color=ACCENT, lw=2.5, arrow=True)
+    g = rect(slide, 6.10, YL - 0.25, 1.15, 0.50, fill=WHITE)
+    put(g.text_frame, '6年', 21, ACCENT, bold=True, align=PP_ALIGN.CENTER, first=True)
+
+
+# ══ 1枚目：表層の課題（規模） ══════════════════════════
 s1 = prs.slides.add_slide(BLANK)
 title(s1, '児童数が減っても、学童は足りなくなる',
       '東京49自治体・2025年5月1日時点の実測と、受け皿を据え置いた場合の試算')
 
-# 実測3数字（KPIタイル）
 TW = (CW - 0.60) / 3
 tiles = [
-    ('146,393人', '学童に登録している児童。\n公立小学校児童 589,912人の 4人に1人',
-     '2025年5月1日・49自治体'),
-    ('+5.9%', '2年で増えた学童の需要（登録＋待機）。\n同じ2年で児童数は −0.8%',
-     '2023年5月→2025年5月・48自治体'),
-    ('19,573人分', '受け皿が今のままなら、\n2038年度に足りない',
-     '本サービスの試算・46/49自治体で不足'),
+    ('146,393人', ['学童に登録している児童。',
+                   '公立小学校児童 589,912人の 4人に1人'], '2025年5月1日・49自治体'),
+    ('+5.9%', ['2年で増えた学童の需要（登録＋待機）。',
+               '同じ2年で児童数は −0.8%'], '2023年5月→2025年5月・48自治体'),
+    ('19,573人分', ['受け皿が今のままなら、',
+                    '2038年度に足りない'], '本サービスの試算・46/49自治体で不足'),
 ]
 for i, (num, desc, note) in enumerate(tiles):
     x = L + i * (TW + 0.30)
-    rect(s1, x, 1.82, TW, 0.055, fill=ACCENT)          # 上端のアクセント罫
-    rect(s1, x, 1.875, TW, 1.52, fill=TINT)
-    _, tf = tb(s1, x + 0.22, 2.00, TW - 0.44, 0.60)
+    rect(s1, x, 2.05, TW, 0.055, fill=ACCENT)
+    rect(s1, x, 2.105, TW, 1.60, fill=TINT)
+    _, tf = tb(s1, x + 0.22, 2.28, TW - 0.44, 0.62)
     put(tf, num, 32, ACCENT, bold=True, first=True)
-    _, tf = tb(s1, x + 0.22, 2.66, TW - 0.44, 0.50)
-    for j, ln_ in enumerate(desc.split('\n')):
-        put(tf, ln_, 11.5, INK, line_sp=1.3, first=(j == 0))
-    _, tf = tb(s1, x + 0.22, 3.14, TW - 0.44, 0.24)
+    _, tf = tb(s1, x + 0.22, 2.98, TW - 0.44, 0.52)
+    lines(tf, desc, 11.5, INK, line_sp=1.3)
+    _, tf = tb(s1, x + 0.22, 3.46, TW - 0.44, 0.24)
     put(tf, note, 9, GREY_LT, first=True)
 
-line(s1, L, 3.62, SW - R, 3.62, color=RULE, lw=1.0)
+_, tf = tb(s1, L, 4.30, CW, 0.9, align=PP_ALIGN.CENTER)
+put(tf, 'これは、表に出ている数字だけ', 20, ACCENT_DEEP, bold=True,
+    align=PP_ALIGN.CENTER, space_after=8, first=True)
+put(tf, '待機児童数を見ても順位は付かない — 49自治体のうち19はゼロ。'
+        '申込前に断念した人は、登録にも待機にも計上されない',
+    14, GREY, align=PP_ALIGN.CENTER, line_sp=1.4)
 
-_, tf = tb(s1, L, 3.84, CW, 0.32)
-put(tf, 'そして、足りないと気づくのは 家を買った6年後', 15, GREY, bold=True, first=True)
-
-# 6年のズレ（時間軸）
-YL = 4.95
-line(s1, 1.55, YL, 11.75, YL, color=RULE, lw=2.0)
-for cx, col, year, desc, dark in [
-    (2.45, GREY_LT, '2026年', '第一子が0歳。住宅ローンを組む', False),
-    (10.85, ACCENT, '2032年 4月', '子が小1。学童に入れない', True),
-]:
-    d = 0.28
-    rect(s1, cx - d / 2, YL - d / 2, d, d, fill=col, shape=MSO_SHAPE.OVAL)
-    _, tf = tb(s1, cx - 1.9, YL - 0.86, 3.8, 0.42, align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.BOTTOM)
-    put(tf, year, 18, ACCENT_DEEP if dark else GREY, bold=True, align=PP_ALIGN.CENTER, first=True)
-    _, tf = tb(s1, cx - 1.9, YL + 0.28, 3.8, 0.4, align=PP_ALIGN.CENTER)
-    put(tf, desc, 13, INK if dark else GREY, bold=dark, align=PP_ALIGN.CENTER, first=True)
-
-line(s1, 4.35, YL, 10.58, YL, color=ACCENT, lw=2.5, arrow=True)
-g = rect(s1, 6.10, YL - 0.25, 1.15, 0.50, fill=WHITE)
-put(g.text_frame, '6年', 21, ACCENT, bold=True, align=PP_ALIGN.CENTER, first=True)
-
-kicker(s1, 5.95, '保育園の壁は下がった。壁が消えたのではなく、小学校に移っただけ。')
+kicker(s1, 5.80, '保育園の壁は下がった。壁が消えたのではなく、小学校に移っただけ。')
 footer(s1, 1, '出典：東京都福祉局「東京の学童クラブ事業実施状況」／東京都教育庁「教育人口等推計」'
               '（東京都オープンデータカタログ・CC BY 4.0）。'
-              '需要の伸びは計上方法が変わった江戸川区を除く48自治体で実測')
+              '需要の伸びは、計上方法が変わった江戸川区を除く48自治体で実測')
 
 
-# ── 2枚目：サービス提示 ───────────────────────────────
+# ══ 2枚目：構造的課題＝「小1の壁」の正体 ═══════════════
 s2 = prs.slides.add_slide(BLANK)
-title(s2, '生まれ年を入れるだけで、その子が小1になる年の東京が出る')
+title(s2, '「小1の壁」の正体は、3つが同時に起きていること',
+      '需要は増える／受け皿は増えない／それが数字に出ない。'
+      'だから「今年の待機児童数」を見ても、自分の街の6年後は分からない')
 
-_, tf = tb(s2, L, 2.05, 4.3, 1.0)
-put(tf, '小1で選ぶ街', 40, ACCENT, bold=True, line_sp=1.1, first=True)
-_, tf = tb(s2, L, 3.02, 4.3, 0.5)
-put(tf, '東京49自治体 × 入学年度2027〜2038', 12, GREY, first=True)
+CWD = (CW - 0.60) / 3
+cols = [
+    ('1', '需要は増えている',
+     ['共働きが増え、学童を使う子の割合は',
+      '年 +0.81pt で上がり続けている。',
+      '登録＋待機は2年で +5.9%'],
+     '48自治体・2023-05→2025-05 の実測'),
+    ('2', '受け皿は増えていない',
+     ['2年でクラブが1つも増えていない自治体が',
+      '25／49。うち6自治体は減っている',
+      '（都計の増加は江戸川区がほぼ全部）'],
+     '49自治体・クラブ数の実測'),
+    ('3', 'それが数字に出ない',
+     ['待機児童は49自治体のうち19がゼロ。',
+      '申込前に断念した人は、登録にも',
+      '待機にも計上されない'],
+     '2025-05-01 の実測'),
+]
+for i, (num, head, body, note) in enumerate(cols):
+    x = L + i * (CWD + 0.30)
+    rect(s2, x, 2.15, CWD, 1.72, fill=TINT)
+    n = rect(s2, x + 0.22, 2.34, 0.34, 0.34, fill=ACCENT, shape=MSO_SHAPE.OVAL)
+    put(n.text_frame, num, 12.5, WHITE, bold=True, align=PP_ALIGN.CENTER, first=True)
+    _, tf = tb(s2, x + 0.66, 2.38, CWD - 0.88, 0.34)
+    put(tf, head, 15, ACCENT_DEEP, bold=True, first=True)
+    _, tf = tb(s2, x + 0.22, 2.86, CWD - 0.44, 0.72)
+    lines(tf, body, 11, INK, line_sp=1.32)
+    _, tf = tb(s2, x + 0.22, 3.54, CWD - 0.44, 0.24)
+    put(tf, note, 9, GREY_LT, first=True)
 
-for i, (num, txt) in enumerate([('1', '生まれ年を入れる'),
-                                ('2', '小1になる年度が決まる'),
-                                ('3', '49自治体が並ぶ')]):
-    y = 3.80 + i * 0.72
-    n = rect(s2, L, y, 0.36, 0.36, fill=ACCENT, shape=MSO_SHAPE.OVAL)
-    put(n.text_frame, num, 13, WHITE, bold=True, align=PP_ALIGN.CENTER, first=True)
-    _, tf = tb(s2, L + 0.54, y + 0.05, 3.8, 0.4)
-    put(tf, txt, 14.5, INK, first=True)
+_, tf = tb(s2, L, 4.08, CW, 0.34, align=PP_ALIGN.CENTER)
+put(tf, 'だから、家を買う時点では、その街の6年後が分からない',
+    16, ACCENT_DEEP, bold=True, align=PP_ALIGN.CENTER, first=True)
 
-placeholder(s2, 5.25, 2.00, 7.46, 4.45,
-            '▶ ここに実画面のキャプチャ（地図）',
-            '2031年度・49自治体のコロプレス。\n'
-            '推奨：横1680px以上／枠は 7.46 × 4.45 inch（比率 1.68 : 1）')
-footer(s2, 2)
+timeline(s2, 5.30, num_size=17, desc_size=12.5)
+footer(s2, 2, SOURCE + '。需要の伸びは src/core/trend.ts、受け皿と待機は data/app/data.json で再現できる')
 
 
-# ── 3枚目：デモ ──────────────────────────────────────
+# ══ 3枚目：サービスとデモ ════════════════════════════
 s3 = prs.slides.add_slide(BLANK)
-_, tf = tb(s3, L, 0.42, 6.0, 0.35)
-put(tf, '実際の画面', 13, GREY, bold=True, first=True)
+title(s3, '生まれ年を入れるだけで、その子が小1になる年の東京が出る')
 
-placeholder(s3, L, 0.92, CW, 5.55,
+_, tf = tb(s3, L, 1.30, 4.0, 0.55)
+put(tf, SERVICE, 30, ACCENT, bold=True, first=True)
+_, tf = tb(s3, L + 2.35, 1.44, 8.5, 0.4)
+put(tf, '東京49自治体 × 入学年度2027〜2038 ＝ 588通りを、1画面で比べる', 13, GREY, first=True)
+
+placeholder(s3, L, 2.00, CW, 4.40,
             '▶ ここに実画面のキャプチャ／画面録画（全画面）',
-            '中央区を選択 → 2031年度 →「882人分、足りない」→ 隣接区の比較。\n'
-            '動画では40秒。枠は 12.09 × 5.55 inch（比率 2.18 : 1）')
+            '生まれ年を入れる → 地図が入学年度に切り替わる → 中央区を選ぶ →'
+            '「882人分、足りない」→ 隣接区の比較。\n'
+            '動画では40秒。枠は 12.09 × 4.40 inch（比率 2.75 : 1）')
 
-co = rect(s3, 8.30, 1.55, 3.55, 1.30, fill=WHITE, outline=ACCENT, lw=1.75)
+co = rect(s3, 8.45, 2.55, 3.55, 1.30, fill=WHITE, outline=ACCENT, lw=1.75)
 put(co.text_frame, '2031年度・中央区', 11, GREY, align=PP_ALIGN.CENTER, space_after=3, first=True)
 put(co.text_frame, '882人分、足りない', 20, ACCENT, bold=True, align=PP_ALIGN.CENTER, space_after=3)
 put(co.text_frame, '多く見れば 1,543人', 11, GREY, align=PP_ALIGN.CENTER)
-line(s3, 8.30, 2.20, 7.10, 2.90, color=ACCENT, lw=1.5)
+line(s3, 8.45, 3.20, 7.20, 3.90, color=ACCENT, lw=1.5)
 
-_, tf = tb(s3, L, 6.58, CW, 0.35)
-put(tf, '※ 待機児童数では順位が付かない — 49自治体のうち18はゼロ。'
-        'このサービスは「あなたの子が小1になる年」で並べ替える', 12, GREY, first=True)
+kicker(s3, 6.55, '「今年の待機児童数」ではなく、「あなたの子が小1になる年」で並べ替える。', size=15)
 footer(s3, 3)
 
 
-# ── 4枚目：担保 ──────────────────────────────────────
+# ══ 4枚目：データとロジック ═══════════════════════════
 s4 = prs.slides.add_slide(BLANK)
-title(s4, '予測が何%外れるかを、自分で答え合わせした',
-      '都の教育人口等推計を3ヴィンテージ突き合わせ、49自治体で実測（src/core/backtest.ts で再現できる）')
+title(s4, '都の公式データ3種を結合し、予測が外れる幅まで測っている',
+      '49自治体 × 12年度 ＝ 588セル。サーバーもDBもAPIキーも使わず、すべてブラウザの中で計算する')
 
-PT, PB = 1.98, 5.60
-band(s4, L, PT, 5.55, '予測の外れ幅（実測・絶対誤差平均）')
+FW = (CW - 3 * 0.42) / 4
+flow = [
+    ('3つの公式データ', ['学童クラブ実施状況', '教育人口等推計（3世代）', '公立学校一覧 1,241校']),
+    ('結合して整える', ['ヘッダ6行・区市別2ブロックの', '年次CSVを正規化し、',
+                        '49自治体×12年度に揃える']),
+    ('予測する', ['都の公式推計を読み、切れる', '2031年度以降は全都の伸び率で接続。',
+                  '登録率は最小二乗＋縮約推定']),
+    ('外れ幅を測る', ['推計3世代を突き合わせ、', '実際に何%外れたかを算出。',
+                      '帯はその実測から引く']),
+]
+for i, (head, body) in enumerate(flow):
+    x = L + i * (FW + 0.42)
+    rect(s4, x, 1.98, FW, 0.055, fill=ACCENT)
+    rect(s4, x, 2.035, FW, 1.28, fill=TINT)
+    _, tf = tb(s4, x + 0.18, 2.16, FW - 0.36, 0.32)
+    put(tf, head, 13.5, ACCENT_DEEP, bold=True, first=True)
+    _, tf = tb(s4, x + 0.18, 2.54, FW - 0.36, 0.70)
+    lines(tf, body, 9.5, INK, line_sp=1.32)
+    if i < 3:
+        line(s4, x + FW + 0.09, 2.68, x + FW + 0.34, 2.68, color=ACCENT, lw=2.0, arrow=True)
 
+PT = 3.60
+band(s4, L, PT, 5.55, '予測が外れた幅（実測・絶対誤差平均）')
 cd = CategoryChartData()
 cd.categories = ['1年先', '2年先']
 cd.add_series('誤差', (0.93, 1.37))
 gf = s4.shapes.add_chart(XL_CHART_TYPE.COLUMN_CLUSTERED,
-                         Inches(L), Inches(PT + 0.44), Inches(5.55), Inches(2.90), cd)
+                         Inches(L), Inches(PT + 0.42), Inches(5.55), Inches(2.05), cd)
 ch = gf.chart
 ch.has_legend = False
 ch.has_title = False
-ch.font.size = Pt(13)
+ch.font.size = Pt(12)
 ch.font.name = FONT
 ch.font.color.rgb = INK
 pl = ch.plots[0]
-pl.gap_width = 140
+pl.gap_width = 150
 pl.has_data_labels = True
 dl = pl.data_labels
 dl.number_format = '0.00"%"'
 dl.number_format_is_linked = False
 dl.position = XL_LABEL_POSITION.OUTSIDE_END
-dl.font.size = Pt(18)
+dl.font.size = Pt(17)
 dl.font.bold = True
 dl.font.name = FONT
 dl.font.color.rgb = ACCENT_DEEP
@@ -285,25 +343,74 @@ pts = pl.series[0].points
 pts[0].format.fill.solid(); pts[0].format.fill.fore_color.rgb = ACCENT_PALE
 pts[1].format.fill.solid(); pts[1].format.fill.fore_color.rgb = ACCENT
 
-_, tf = tb(s4, L, PT + 3.44, 5.55, 0.6)
-put(tf, '令和5・6年度版が出した推計を、令和7年度の実数と突き合わせた結果。'
-        'いま出回っている推計が実際どれだけ外れたかを測っている', 10.5, GREY, line_sp=1.35, first=True)
+_, tf = tb(s4, L, PT + 2.52, 5.55, 0.4)
+put(tf, '令和5・6年度版が出した推計を、令和7年度の実数と突き合わせた結果（49自治体）',
+    10, GREY, line_sp=1.35, first=True)
 
-line(s4, 6.44, PT, 6.44, PB, color=RULE, lw=1.0)
+line(s4, 6.44, PT, 6.44, PT + 2.92, color=RULE, lw=1.0)
 
-band(s4, 6.72, PT, 5.99, '需要の予測区間（帯つき）')
-placeholder(s4, 6.72, PT + 0.44, 5.99, 3.00,
-            '▶ ここに実画面のキャプチャ（折れ線＋帯）',
-            '詳細画面の「必要な数／入れる数」と予測区間。\n枠は 5.99 × 3.00 inch（比率 2.00 : 1）')
-_, tf = tb(s4, 6.72, PT + 3.56, 5.99, 0.5)
-put(tf, '帯には児童数の推計誤差と、登録率トレンドの不確かさの両方が入っている。'
-        '測っていないことは、測っていないと書く', 10.5, GREY, line_sp=1.35, first=True)
+band(s4, 6.72, PT, 5.99, '測っていないことは、測っていないと書く')
+_, tf = tb(s4, 6.72, PT + 0.54, 5.99, 2.20)
+for i, (h, b) in enumerate([
+    ('2031年度から先', '都の公式推計が切れるので「接続した推定」と画面に明記し、帯を1.5倍に広げる'),
+    ('自治体別トレンド', '推定する仕組みは実装済み。ただし時点が2つしかない今は'
+                        '都全体の実測値にフォールバックしている、と画面に出す'),
+    ('データがない自治体', '0点ではなく灰色で描く。「足りている」と「分からない」を同じ色にしない'),
+]):
+    put(tf, h, 11, ACCENT_DEEP, bold=True, space_after=1, first=(i == 0))
+    put(tf, b, 10, INK, line_sp=1.32, space_after=7)
+footer(s4, 4, SOURCE + '。バックテストは src/core/backtest.ts と npm test で再現できる')
 
-kicker(s4, 6.14, '学童は1本目の軸。同じ器に、通勤時間も住宅価格も入る。')
-footer(s4, 4)
+
+# ══ 5枚目：展望と意義 ═════════════════════════════════
+s5 = prs.slides.add_slide(BLANK)
+title(s5, '学童は1本目の軸。同じ器に足していける',
+      '同じ計算・同じ画面が、住む場所を決める住民にも、受け皿を整える自治体にも使える')
+
+VW = (CW - 0.60) / 3
+views = [
+    ('軸を足す', [
+        'v1 の軸は学童1本（weight 1.0）。',
+        '通勤時間・住宅価格帯・学区評価は',
+        '同じ Indicator 配列に足すだけで、',
+        '画面もヒートマップも変更が要らない。',
+    ], '要件 FR-9 ／ src/core/indicators/'),
+    ('使い手が広がる', [
+        '住民：住宅ローンを組む前に、',
+        '　　　6年先まで見て決める。',
+        '自治体：学童整備計画の需給見通しに、',
+        '　　　　同じ数字をそのまま使える。',
+    ], '行政と住民が同じ画面を見る'),
+    ('更新が続く', [
+        '使うのは毎年更新される都の公式データだけ。',
+        'APIキーもDBもサーバーも持たないので、',
+        '年1回データを差し替えれば動き続ける。',
+        '運用コストは実質ゼロ。',
+    ], '静的配信 501KB ／ gzip 161KB'),
+]
+for i, (head, body, note) in enumerate(views):
+    x = L + i * (VW + 0.30)
+    rect(s5, x, 2.10, VW, 0.055, fill=ACCENT)
+    rect(s5, x, 2.155, VW, 2.30, fill=TINT)
+    _, tf = tb(s5, x + 0.24, 2.34, VW - 0.48, 0.36)
+    put(tf, head, 17, ACCENT, bold=True, first=True)
+    _, tf = tb(s5, x + 0.24, 2.86, VW - 0.48, 1.24)
+    lines(tf, body, 11, INK, line_sp=1.38)
+    _, tf = tb(s5, x + 0.24, 4.14, VW - 0.48, 0.24)
+    put(tf, note, 9, GREY_LT, first=True)
+
+_, tf = tb(s5, L, 4.80, CW, 0.9, align=PP_ALIGN.CENTER)
+put(tf, '都が持っているのに比べられなかったデータを、住民の意思決定に使える形にする',
+    17, ACCENT_DEEP, bold=True, align=PP_ALIGN.CENTER, space_after=8, first=True)
+put(tf, '「調べる時間を短縮する」サービスではありません。'
+        '取り返しのつかない選択を、自分の手で確かめてから下ろすための道具です',
+    13, GREY, align=PP_ALIGN.CENTER, line_sp=1.4)
+
+kicker(s5, 6.00, '一年生になったら、その街はどうなっているか。先に、見にいける。', size=16)
+footer(s5, 5)
 
 
-# ── 全ランに Meiryo UI（欧文 latin ／ 和文 ea ／ 記号 cs）を焼き込む ──
+# ── 全ランに Meiryo UI（latin / ea / cs）を焼き込む ──
 def stamp(el):
     for rPr in el.iter():
         if rPr.tag in (qn('a:rPr'), qn('a:defRPr'), qn('a:endParaRPr')):
@@ -319,6 +426,6 @@ for sl in prs.slides:
         if sh.has_chart:
             stamp(sh.chart._chartSpace)
 
-out = 'ppt資料/2分プレゼン_v1.pptx'
+out = 'ppt資料/2分プレゼン_v2.pptx'
 prs.save(out)
-print('saved:', out)
+print('saved:', out, '/ 5 slides')
