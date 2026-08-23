@@ -45632,17 +45632,10 @@
  ],
  "sources": [
   {
-   "name": "学童クラブ事業の区市町村別実施状況（令和5年5月1日現在）",
+   "name": "学童クラブ事業の区市町村別実施状況",
    "provider": "東京都福祉局",
    "license": "CC BY 4.0",
    "url": "https://catalog.data.metro.tokyo.lg.jp/dataset/t000054d0000000344",
-   "retrievedAt": "2026-08-22"
-  },
-  {
-   "name": "学童クラブ事業実施状況（令和7年5月1日・10月1日現在）",
-   "provider": "東京都福祉局",
-   "license": "東京都福祉局サイト公表資料（オープンデータカタログ未掲載）",
-   "url": "https://www.fukushi.metro.tokyo.lg.jp/kodomo/hoiku/gakudou_jidoukan/ichiran",
    "retrievedAt": "2026-08-22"
   },
   {
@@ -45685,13 +45678,6 @@
    "provider": "東京都教育庁",
    "license": "CC BY 4.0",
    "url": "https://catalog.data.metro.tokyo.lg.jp/dataset/t000021d2000000176",
-   "retrievedAt": "2026-08-22"
-  },
-  {
-   "name": "国土数値情報（行政区域データ）を加工して作成",
-   "provider": "国土交通省",
-   "license": "国土数値情報 利用約款",
-   "url": "https://nlftp.mlit.go.jp/ksj/",
    "retrievedAt": "2026-08-22"
   }
  ]

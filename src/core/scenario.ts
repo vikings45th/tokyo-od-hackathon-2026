@@ -92,22 +92,20 @@ export const PRESET_SCENARIOS: readonly PresetScenario[] = [
   {
     id: 'baseline',
     label: '実測どおり（既定）',
-    description:
-      '学童を使う子の割合は、都のデータから実測したとおりに上がると仮定。クラブ数は据え置き（何もしなければどうなるか）。',
+    description: '登録率は都の3時点データの実測どおり年 +0.84pt 上昇。クラブ数は据え置き（何もしなければどうなるか）。',
     build: () => ({}),
   },
   {
     id: 'mansion600',
     label: '駅前に600戸のマンションが2028年に完成する',
-    description:
-      '東京都の住宅種別×学年別の児童発生率（民間マンションA地区・1戸あたり小1は0.013人）で人数に変換します。数字を作るのは都の公式係数です。',
+    description: '東京都の住宅種別×学年別 児童発生率（民間マンションA地区・1戸あたり小1は0.013人）で人数に変換します。',
     build: ({ muni }) =>
       muni ? { housing: [{ muni, year: 2028, units: 600, type: '民間マンションA' }] } : {},
   },
   {
     id: 'trend15',
-    label: '使う子の割合が年 +1.5pt 上がる',
-    description: '共働き世帯の増加が、実測よりも速く進んだ場合。',
+    label: '登録率が年 +1.5pt 上がる',
+    description: '共働き世帯の増加が今より速く進んだ場合。実測（+0.84pt）の約1.8倍です。',
     build: () => ({ trend: 0.015 }),
   },
   {
