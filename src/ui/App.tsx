@@ -109,6 +109,20 @@ export default function App() {
       .slice(0, 3);
   }, [sel, core, focusYear]);
 
+  // 出典をライセンスごとに束ねる。出現順は data.json の順を保つ
+  const licenseGroups = useMemo(() => {
+    const m = new Map<string, typeof DATA.sources>();
+    for (const s of DATA.sources) {
+      const g = m.get(s.license);
+      if (g) g.push(s);
+      else m.set(s.license, [s]);
+    }
+    return [...m.entries()];
+  }, []);
+
+  // 実測値からどれだけ離れているか。0.3pt/年 以上ずれたら画面に出す
+  const offMeasured = Math.abs(core.scenario.trend - TREND.trend) > 0.003;
+
   const rise = useInView<HTMLElement>();
   const [step, stepRef] = useScrollStep(STORY_YEARS.length);
   const storyYear = STORY_YEARS[step];
@@ -299,24 +313,11 @@ export default function App() {
               )}
             </div>
             <div className="g" style={{ marginLeft: 'auto' }}>
-              <span className="k">学童を使う子の割合は毎年</span>
-              <input
-                className="rng"
-                type="range"
-                min={0}
-                max={0.02}
-                step={0.0002}
-                value={trend}
-                aria-label="登録率の年あたり上昇幅"
-                disabled={presetId === 'trend15'}
-                onChange={(e) => setTrend(Number(e.target.value))}
-              />
-              <span className="eq tab">{pt(core.scenario.trend)}</span>
-              <Tip
-                body={`都の3時点データ（2023-05→2025-05・${TREND.n}自治体）から実測した値です。自治体間のばらつきが大きいため、都平均の1点を全自治体に当てている仮定です。`}
-              >
-                <span className="tag">実測値 {pt(TREND.trend)}</span>
+              <Tip body={`学童を使う子の割合が、年あたりどれだけ上がるかの仮定です。都のデータ（${TREND.n}自治体）から実測した値を既定にしています。下の「条件を変えて計算する」で動かせます。`}>
+                <span className="k">仮定：割合は毎年</span>
               </Tip>
+              <span className="eq tab">{pt(core.scenario.trend)}</span>
+              {offMeasured && <span className="offtag">実測値から外れた仮定</span>}
             </div>
           </div>
 
@@ -531,6 +532,40 @@ export default function App() {
               {preset.description}
               {preset.id === 'latent' && <span className="assume">　※これは仮定です</span>}
             </p>
+
+            {/* 🔴 スライダーは主導線に置かない。
+                「学童を使う子の割合が年に何pt上がるか」を、家を探している親が判断できるはずがない。
+                主導線はプリセット（それぞれ description に根拠がある）にして、
+                スライダーは「自分で動かす」を開いた人にだけ出す。 */}
+            <details className="tweak">
+              <summary>自分で仮定を変える</summary>
+              <div className="tweakbody">
+                <span className="k">学童を使う子の割合は毎年</span>
+                <input
+                  className="rng"
+                  type="range"
+                  min={0}
+                  max={0.02}
+                  step={0.0002}
+                  value={trend}
+                  aria-label="学童を使う子の割合の、年あたり上昇幅"
+                  disabled={presetId === 'trend15'}
+                  onChange={(e) => setTrend(Number(e.target.value))}
+                />
+                <span className="eq tab">{pt(core.scenario.trend)}</span>
+                <button className="zb" onClick={() => setTrend(TREND.trend)} disabled={presetId === 'trend15'}>
+                  実測値 {pt(TREND.trend)} に戻す
+                </button>
+                <p className="tweak-why">
+                  既定値は、都のデータ（{TREND.n}自治体）から実測した値です。
+                  {offMeasured && (
+                    <strong className="offnote">
+                      　いまの値は実測から外れています。根拠のある数字ではありません。
+                    </strong>
+                  )}
+                </p>
+              </div>
+            </details>
           </div>
         </div>
       </section>
@@ -574,19 +609,29 @@ export default function App() {
             誤差を実測できるのは1年先と2年先だけです（都の推計が3世代しかないため）。
             {core.bridgeFrom}年度以降は、都の公式推計どうしを接続した推定であることを画面に明示しています。
           </p>
+          {/* 🔴 ライセンスごとに束ねる。カタログ掲載の CC BY 4.0 と、
+              カタログ未掲載の福祉局公表資料を混ぜて「いずれも CC BY」と書かない（提出要件 FR-8）。
+              1段落に9件並べると灰色の塊になって読まれないので、リストにする */}
           <div className="src rise" ref={rise}>
-            <b>出典</b>　
-            {DATA.sources.map((s, i) => (
-              <span key={s.url}>
-                {i > 0 && '／'}
-                <a href={s.url} target="_blank" rel="noreferrer" style={{ color: 'inherit' }}>
-                  「{s.name}」
-                </a>
-                （{s.provider}・{s.license}・{s.retrievedAt}取得）
-              </span>
+            <b>出典</b>
+            {licenseGroups.map(([license, items]) => (
+              <div className="srcgrp" key={license}>
+                <p className="srclic">{license}</p>
+                <ul className="srclist">
+                  {items.map((s) => (
+                    <li key={s.url}>
+                      <a href={s.url} target="_blank" rel="noreferrer">
+                        {s.name}
+                      </a>
+                      <span className="srcmeta">
+                        {s.provider}・{s.retrievedAt}取得
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
             ))}
-            <br />
-            本サービスは上記データを加工して作成しています。
+            <p className="srcnote">本サービスは上記データを加工して作成しています。</p>
           </div>
         </div>
       </section>
