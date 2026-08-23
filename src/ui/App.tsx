@@ -30,7 +30,8 @@ import type { Muni, Scenario, Source } from '../types';
 import { BIN_LABELS, PALETTES, binOf, fillOf, type Palette } from './palette';
 import { Choropleth } from './Choropleth';
 import { Series } from './Series';
-import { HeroMark } from './HeroMark';
+import { HeroVisual } from './HeroVisual';
+import { WhyIcon } from './WhyIcon';
 import { DATA, GEO, GEO_SOURCE, TREND, compute, fmt, missingMunis, pt } from './data';
 import { bboxOf } from './geo';
 import { useTheme, useZoomPan } from './hooks';
@@ -369,9 +370,10 @@ export default function App() {
 
         {/* ── #lede ── 表紙にしない。1画面は占有させない ── */}
         <section id="lede">
-          <div className="read">
-            <HeroMark />
-            <div>
+          <div className="hero-wrap">
+            <div className="hero-copy">
+              {/* 図版は h1 の「上」。横に置くと読む幅が潰れて h1 が割れる（styles.css の #lede） */}
+              <HeroVisual />
               <h1>
                 保育園には、入れた。
                 <br />
@@ -426,10 +428,13 @@ export default function App() {
 
         {/* ── #why ── なぜ「いま」わからないのか。数字を持った困りごと3つ ── */}
         <section id="why">
-          <div className="read">
+          <div className="intro">
             <h2>いま、比べる方法がありません。</h2>
             <div className="why-list">
-              <div>
+              <article className="why-card">
+                <div className="why-icon-wrap">
+                  <WhyIcon name="calendar" />
+                </div>
                 <p className="wn">
                   不動産サイトも区役所も、答えるのは<b>「今年の」待機児童数</b>だけ。
                 </p>
@@ -437,8 +442,11 @@ export default function App() {
                   あなたの子が小1になるのは{rawFocus}年度です。その年の見通しは、どこにも載っていません。
                   入れなかったときは、民間学童の費用を負担するか、家庭のどちらかが働き方を変えるかになります。
                 </p>
-              </div>
-              <div>
+              </article>
+              <article className="why-card">
+                <div className="why-icon-wrap">
+                  <WhyIcon name="ranking" />
+                </div>
                 <p className="wn">
                   待機児童数では、順位が付きません。{waitingStat.total}自治体のうち{' '}
                   <b className="tab">{waitingStat.zero}が待機ゼロ</b>です。
@@ -448,8 +456,11 @@ export default function App() {
                   この課題の当事者そのものが、指標に現れないということです。
                   （東京都福祉局・{GAKUDO_NOW.replace(/-/g, '/')}時点の実測）
                 </p>
-              </div>
-              <div>
+              </article>
+              <article className="why-card">
+                <div className="why-icon-wrap">
+                  <WhyIcon name="data" />
+                </div>
                 <p className="wn">
                   データは公開されています。ただ、<b>比べられる形になっていません。</b>
                 </p>
@@ -457,7 +468,7 @@ export default function App() {
                   CSVはヘッダが6行目から始まり、区部と市町村部が横に2ブロック並び、数値は
                   <code>&quot;1,261 &quot;</code> のような文字列。購入を検討している人が扱える形ではありません。
                 </p>
-              </div>
+              </article>
             </div>
           </div>
         </section>
@@ -497,7 +508,7 @@ export default function App() {
           <div className="wide">
             <div className="secthd">
               <h2>
-                <span className="tab">{viewYear}</span>年度、学童に入れない子がどれくらい出るか。
+                <span className="tab">{viewYear}</span>年度、学童に入りやすいのはどこか。
               </h2>
               {/* ズームは地図に重ねない。拡大・移動すると地形と重なって読めなくなる */}
               <div className="zoombar">
@@ -519,65 +530,8 @@ export default function App() {
               </div>
             </div>
 
-            <div className="mapstage">
-              <Choropleth
-                geo={GEO}
-                palette={palette}
-                cellOf={(m) => cellAt(core, m, viewYear)}
-                selected={sel}
-                onSelect={setSelected}
-                viewBox={zp.viewBox}
-                svgRef={zp.ref}
-                handlers={zp.handlers}
-                scale={zp.scale}
-              />
-            </div>
-
-            <div className="legend">
-              <span>入れない割合</span>
-              <span>低</span>
-              <span className="bar-ramp">
-                {palette.ramp.map((c, i) => (
-                  <Tip key={c} body={`${BIN_LABELS[i]}　需要のうち受け皿に入れない割合`}>
-                    <i style={{ background: c, display: 'inline-block', width: 30, height: 8 }} />
-                  </Tip>
-                ))}
-              </span>
-              <span>高</span>
-              <span className="hint">自治体をクリックで選択・スクロールで拡大・ドラッグで移動・ダブルクリックで戻る</span>
-            </div>
-            {missing.length > 0 && (
-              <p className="stub">
-                ⚠️ グレーの{missing.length}自治体はデータがありません（0点ではありません）
-              </p>
-            )}
-
-            {/* 🔴 選択中の明細は地図の真下に横1行。クリックの結果が視線の先で変わる */}
-            <div className="selbar">
-              <span className="who">
-                {sel ?? '—'}　{viewYear}年度
-              </span>
-              <span className="big tab">
-                {fmt(selCell?.detail.gap)}
-                <small>人が、入れない</small>
-              </span>
-              <span className="facts">
-                <span>
-                  必要な数 <b className="tab">{fmt(selCell?.detail.demand)}</b> 人
-                </span>
-                <span>
-                  いまの受け入れ <b className="tab">{fmt(selCell?.detail.supply)}</b> 人
-                </span>
-                <span>
-                  いまの待機児童 <b className="tab">{fmt(selGakudo?.waiting)}</b> 人
-                </span>
-                <span>
-                  学童クラブ <b className="tab">{fmt(selGakudo?.clubs)}</b> か所
-                </span>
-              </span>
-            </div>
-
-            {/* 年スクラバ。2026→2038 の物語は、スクロール演出ではなくこの1本に集約した */}
+            {/* 年スクラバ。2026→2038 の物語は、スクロール演出ではなくこの1本に集約した。
+                🔴 地図の直上に置く。地図の下だと、動かしている年度と塗り替わる面が視野に同居しない */}
             <div className="scrub">
               <div className="scrub-hd">
                 <span className="scrub-y tab">{viewYear}年度</span>
@@ -611,6 +565,16 @@ export default function App() {
                 aria-label="地図に出す年度"
                 onChange={(e) => setYearOverride(Number(e.target.value))}
               />
+              {/* 目盛り。1年＝1段であることを見せる。小1の年と推定の始まりだけ立てる */}
+              <div className="scrub-ticks" aria-hidden="true">
+                {core.years.map((y) => (
+                  <i
+                    key={y}
+                    className={y === focusYear ? 'you' : y === core.bridgeFrom ? 'br' : ''}
+                    style={{ left: `${pct(y)}%` }}
+                  />
+                ))}
+              </div>
               <div className="scrub-ax">
                 <span className="lo">{firstYear}</span>
                 <span className="you" style={{ left: `${pct(focusYear)}%` }}>
@@ -619,6 +583,66 @@ export default function App() {
                 <span style={{ left: `${pct(core.bridgeFrom)}%` }}>{core.bridgeFrom}〜 推定</span>
                 <span className="hi">{lastYear}</span>
               </div>
+            </div>
+
+            <div className="mapstage">
+              <Choropleth
+                geo={GEO}
+                palette={palette}
+                cellOf={(m) => cellAt(core, m, viewYear)}
+                selected={sel}
+                onSelect={setSelected}
+                viewBox={zp.viewBox}
+                svgRef={zp.ref}
+                handlers={zp.handlers}
+                scale={zp.scale}
+              />
+            </div>
+
+            <div className="legend">
+              {/* 色相で良し悪しを分けたので「低／高」ではなく入りやすさの語で挟む。
+                  Tip の中の数値の定義（入れない割合 %）は変えない */}
+              <span>色 ＝ 学童の入りやすさ</span>
+              <span>入りやすい</span>
+              <span className="bar-ramp">
+                {palette.ramp.map((c, i) => (
+                  <Tip key={c} body={`${BIN_LABELS[i]}　需要のうち受け皿に入れない割合`}>
+                    <i style={{ background: c, display: 'inline-block', width: 30, height: 8 }} />
+                  </Tip>
+                ))}
+              </span>
+              <span>入りにくい</span>
+              <span className="hint">自治体をクリックで選択・スクロールで拡大・ドラッグで移動・ダブルクリックで戻る</span>
+            </div>
+            {missing.length > 0 && (
+              <p className="stub">
+                ⚠️ グレーの{missing.length}自治体はデータがありません（0点ではありません）
+              </p>
+            )}
+
+            {/* 🔴 選択中の明細は地図の真下に横1行。クリックの結果が視線の先で変わる */}
+            <div className="selbar">
+              <span className="who">
+                {sel ?? '—'}　{viewYear}年度
+              </span>
+              <span className="big tab">
+                {fmt(selCell?.detail.gap)}
+                <small>人が、入れない</small>
+              </span>
+              <span className="facts">
+                <span>
+                  必要な数 <b className="tab">{fmt(selCell?.detail.demand)}</b> 人
+                </span>
+                <span>
+                  いまの受け入れ <b className="tab">{fmt(selCell?.detail.supply)}</b> 人
+                </span>
+                <span>
+                  いまの待機児童 <b className="tab">{fmt(selGakudo?.waiting)}</b> 人
+                </span>
+                <span>
+                  学童クラブ <b className="tab">{fmt(selGakudo?.clubs)}</b> か所
+                </span>
+              </span>
             </div>
 
             {/* 🔴 出典は地図のすぐ下に必ず1行出す（FR-8）。完全な一覧は #sources */}

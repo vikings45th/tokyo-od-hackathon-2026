@@ -4,7 +4,7 @@
  * 2026-08-23 第2版で `useInView` / `useScrollStep` / `useScrollSpy` を削除した。
  * スクロール連動の演出（フェードイン・年送り・解説列のナビ）をすべてやめたため。
  */
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { MAP_H, MAP_W, type Box } from './geo';
 
 const FULL: Box = { x: 0, y: 0, w: MAP_W, h: MAP_H };
@@ -34,9 +34,21 @@ export function useZoomPan() {
     };
   };
 
-  // wheel は passive:false でないと preventDefault できない。React の onWheel では効かない
-  useEffect(() => {
-    const el = svg.current;
+  /**
+   * wheel は passive:false でないと preventDefault できない。React の onWheel では効かない。
+   *
+   * 🔴 useEffect(…, []) で貼ってはいけない。**マウント時の1回しか走らない**ので、
+   *    <svg> が作り直されると（兄弟要素の並び替え・条件分岐・HMR）
+   *    svg.current は新しい要素を指すのにリスナは古い要素に残り、
+   *    **ホイール拡大だけ何も言わずに死ぬ**（ボタンとダブルクリックは生きているので気づきにくい）。
+   *    2026-08-23、年スクラバを地図の上に移した並び替えで実際に踏んだ。
+   *    → callback ref にして、要素が入れ替わるたびに貼り直す。
+   */
+  const detachWheel = useRef<(() => void) | null>(null);
+  const setSvgRef = useCallback((el: SVGSVGElement | null) => {
+    detachWheel.current?.();
+    detachWheel.current = null;
+    svg.current = el;
     if (!el) return;
     const onWheel = (e: WheelEvent) => {
       e.preventDefault();
@@ -51,7 +63,9 @@ export function useZoomPan() {
       });
     };
     el.addEventListener('wheel', onWheel, { passive: false });
-    return () => el.removeEventListener('wheel', onWheel);
+    detachWheel.current = () => el.removeEventListener('wheel', onWheel);
+    // clamp は定数だけを見る純関数なので、ここで閉じ込めても古い値を掴まない
+
   }, []);
 
   /**
@@ -94,7 +108,7 @@ export function useZoomPan() {
   };
 
   return {
-    ref: svg,
+    ref: setSvgRef,
     viewBox: `${vb.x} ${vb.y} ${vb.w} ${vb.h}`,
     /** 拡大率。1 = 全体。ラベルの出し分けと線幅の補正に使う */
     scale: MAP_W / vb.w,
