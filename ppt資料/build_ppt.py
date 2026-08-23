@@ -144,38 +144,60 @@ def kicker(slide, y, text):
     return s
 
 
-# ── 1枚目：6年のズレ ─────────────────────────────────
+# ── 1枚目：課題の大きさ（実測）＋6年のズレ ───────────
 s1 = prs.slides.add_slide(BLANK)
-title(s1, '家を買う年と、学童に入れない年が、6年ずれている',
-      '意思決定する時点と、痛みが出る時点')
+title(s1, '児童数が減っても、学童は足りなくなる',
+      '東京49自治体・2025年5月1日時点の実測と、受け皿を据え置いた場合の試算')
 
-YL = 3.85
+# 実測3数字（KPIタイル）
+TW = (CW - 0.60) / 3
+tiles = [
+    ('146,393人', '学童に登録している児童。\n公立小学校児童 589,912人の 4人に1人',
+     '2025年5月1日・49自治体'),
+    ('+5.9%', '2年で増えた学童の需要（登録＋待機）。\n同じ2年で児童数は −0.8%',
+     '2023年5月→2025年5月・48自治体'),
+    ('19,573人分', '受け皿が今のままなら、\n2038年度に足りない',
+     '本サービスの試算・46/49自治体で不足'),
+]
+for i, (num, desc, note) in enumerate(tiles):
+    x = L + i * (TW + 0.30)
+    rect(s1, x, 1.82, TW, 0.055, fill=ACCENT)          # 上端のアクセント罫
+    rect(s1, x, 1.875, TW, 1.52, fill=TINT)
+    _, tf = tb(s1, x + 0.22, 2.00, TW - 0.44, 0.60)
+    put(tf, num, 32, ACCENT, bold=True, first=True)
+    _, tf = tb(s1, x + 0.22, 2.66, TW - 0.44, 0.50)
+    for j, ln_ in enumerate(desc.split('\n')):
+        put(tf, ln_, 11.5, INK, line_sp=1.3, first=(j == 0))
+    _, tf = tb(s1, x + 0.22, 3.14, TW - 0.44, 0.24)
+    put(tf, note, 9, GREY_LT, first=True)
+
+line(s1, L, 3.62, SW - R, 3.62, color=RULE, lw=1.0)
+
+_, tf = tb(s1, L, 3.84, CW, 0.32)
+put(tf, 'そして、足りないと気づくのは 家を買った6年後', 15, GREY, bold=True, first=True)
+
+# 6年のズレ（時間軸）
+YL = 4.95
 line(s1, 1.55, YL, 11.75, YL, color=RULE, lw=2.0)
-
 for cx, col, year, desc, dark in [
-    (2.45, GREY_LT, '2026年', '第一子が0歳。\n住宅ローンを組む', False),
-    (10.85, ACCENT, '2032年 4月', '子が小1。\n学童に入れない', True),
+    (2.45, GREY_LT, '2026年', '第一子が0歳。住宅ローンを組む', False),
+    (10.85, ACCENT, '2032年 4月', '子が小1。学童に入れない', True),
 ]:
-    d = 0.30
+    d = 0.28
     rect(s1, cx - d / 2, YL - d / 2, d, d, fill=col, shape=MSO_SHAPE.OVAL)
-    _, tf = tb(s1, cx - 1.7, YL - 1.05, 3.4, 0.5, align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.BOTTOM)
-    put(tf, year, 20, ACCENT_DEEP if dark else GREY, bold=True, align=PP_ALIGN.CENTER, first=True)
-    _, tf = tb(s1, cx - 1.7, YL + 0.34, 3.4, 0.9, align=PP_ALIGN.CENTER)
-    for i, ln_ in enumerate(desc.split('\n')):
-        put(tf, ln_, 13.5, INK if dark else GREY, bold=dark,
-            align=PP_ALIGN.CENTER, line_sp=1.35, first=(i == 0))
+    _, tf = tb(s1, cx - 1.9, YL - 0.86, 3.8, 0.42, align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.BOTTOM)
+    put(tf, year, 18, ACCENT_DEEP if dark else GREY, bold=True, align=PP_ALIGN.CENTER, first=True)
+    _, tf = tb(s1, cx - 1.9, YL + 0.28, 3.8, 0.4, align=PP_ALIGN.CENTER)
+    put(tf, desc, 13, INK if dark else GREY, bold=dark, align=PP_ALIGN.CENTER, first=True)
 
 line(s1, 4.35, YL, 10.58, YL, color=ACCENT, lw=2.5, arrow=True)
-g = rect(s1, 6.10, YL - 0.27, 1.15, 0.54, fill=WHITE)
-put(g.text_frame, '6年', 22, ACCENT, bold=True, align=PP_ALIGN.CENTER, first=True)
-
-_, tf = tb(s1, L, 5.30, CW, 0.5, align=PP_ALIGN.CENTER)
-put(tf, 'この6年のあいだに、取り返しのつかない選択が終わっている',
-    15, GREY, align=PP_ALIGN.CENTER, first=True)
+g = rect(s1, 6.10, YL - 0.25, 1.15, 0.50, fill=WHITE)
+put(g.text_frame, '6年', 21, ACCENT, bold=True, align=PP_ALIGN.CENTER, first=True)
 
 kicker(s1, 5.95, '保育園の壁は下がった。壁が消えたのではなく、小学校に移っただけ。')
-footer(s1, 1, '出典：東京都福祉局「東京の学童クラブ事業実施状況」ほか'
-              '（東京都オープンデータカタログ・CC BY 4.0）')
+footer(s1, 1, '出典：東京都福祉局「東京の学童クラブ事業実施状況」／東京都教育庁「教育人口等推計」'
+              '（東京都オープンデータカタログ・CC BY 4.0）。'
+              '需要の伸びは計上方法が変わった江戸川区を除く48自治体で実測')
 
 
 # ── 2枚目：サービス提示 ───────────────────────────────
