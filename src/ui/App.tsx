@@ -6,7 +6,7 @@
  */
 import { useMemo, useState } from 'react';
 import { PRESET_SCENARIOS, entryYearOf, isEarlyBirth, type CoreCell, type CoreResult } from '../core';
-import type { Scenario } from '../types';
+import type { Muni, Scenario } from '../types';
 import { BIN_LABELS, PALETTES, binOf, fillOf } from './palette';
 import { Choropleth } from './Choropleth';
 import { Series } from './Series';
@@ -16,9 +16,9 @@ import { useInView, useScrollStep, useTheme, useZoomPan } from './hooks';
 
 const STORY_YEARS = [2027, 2031, 2038];
 const STORY_CAPS: Record<number, string> = {
-  2027: 'いまはまだ、ほとんどの区が足りている。',
+  2027: 'いまはまだ、ほとんどの自治体で、希望者が入れている。',
   2031: 'あなたの子が小1になる年。',
-  2038: '受け皿が変わらなければ、ここまで広がる。',
+  2038: '受け皿が増えなければ、ここまで広がる。',
 };
 
 /** 行のスコアを引く。無ければ undefined */
@@ -37,6 +37,20 @@ function rankMunis(core: CoreResult, year: number): string[] {
       if (sb === null) return -1;
       return sb - sa || a.localeCompare(b, 'ja');
     });
+}
+
+/**
+ * `real-shortage` 7自治体を1文で括ると、悪化中（府中市・稲城市）と
+ * 改善中だが残る（練馬区 292→47・足立区 263→179）が同じ扱いになる。
+ * ①の note.text は区別できているので、要約側も待機児童の増減で出し分ける。
+ */
+function shortageLine(muni: Muni | undefined): string {
+  const prev = muni?.gakudo.find((g) => g.asOf === '2023-05-01');
+  const cur = muni?.gakudo.find((g) => g.asOf === '2025-05-01');
+  if (!prev || !cur) return '需要が無いのではなく、受け皿が足りていません。';
+  return cur.waiting > prev.waiting
+    ? '受け皿の拡大が、需要の伸びに追いついていません。'
+    : '改善は進んでいますが、まだ全員は入れていません。';
 }
 
 function Tip({ children, body }: { children: React.ReactNode; body: string }) {
@@ -126,10 +140,10 @@ export default function App() {
           <h1 className="rise" ref={rise}>
             保育園には、入れた。
             <br />
-            <em>でも、小1で詰んだ。</em>
+            <em>次の壁は、小学校にある。</em>
           </h1>
           <p className="lede rise" ref={rise}>
-            学童に入れないと、親のどちらかが働き方を変えることになる。
+            学童に入れないと、親のどちらかが仕事を減らすことになる。
             <br />
             そしてそれは、家を決めたあとでは動かせない。
           </p>
@@ -146,7 +160,7 @@ export default function App() {
           <h2 className="rise" ref={rise}>
             家を決めるのは、いま。
             <br />
-            <span className="dim">詰むのは、{focusYear - 2026}年後。</span>
+            <span className="dim">壁が来るのは、{focusYear - 2026}年後。</span>
           </h2>
           <div className="tl rise" id="tl" ref={rise}>
             <div className="line" />
@@ -171,7 +185,7 @@ export default function App() {
             </div>
           </div>
           <p className="lede rise" ref={rise} style={{ marginTop: 52 }}>
-            不動産サイトも区役所も、答えるのは<span className="hl">今年の</span>待機児童数だけ。
+            不動産サイトも区役所も、教えてくれるのは<span className="hl">今年の</span>待機児童数だけ。
           </p>
         </div>
       </section>
@@ -180,17 +194,17 @@ export default function App() {
       <section id="s2">
         <div className="mid" style={{ width: '100%' }}>
           <p className="eyebrow rise" ref={rise}>
-            {worst} ／ {focusYear}年度の予測
+            {focusYear}年度、東京でいちばん厳しいのは
           </p>
           <div className="n rise tab" ref={rise}>
             {fmt(worstCell?.detail.gap)}
           </div>
           <div className="unit rise" ref={rise}>
-            人分、足りない。
+            人が、入れない。
           </div>
           <p className="lede rise" ref={rise} style={{ margin: '26px auto 0' }}>
-            需要 {fmt(worstCell?.detail.demand)}人 に対して、いまの受け入れ実績は{' '}
-            {fmt(worstCell?.detail.supply)}人。
+            <span className="hl">{worst}</span>。学童を必要とする子が{' '}
+            {fmt(worstCell?.detail.demand)}人。いまの受け入れは {fmt(worstCell?.detail.supply)}人。
           </p>
         </div>
       </section>
@@ -221,7 +235,7 @@ export default function App() {
       <section id="s4">
         <div className="mid">
           <div className="tool-hd rise" ref={rise}>
-            <h2 style={{ fontSize: 'clamp(26px,3vw,42px)' }}>あなたの子の年で、調べる。</h2>
+            <h2 style={{ fontSize: 'clamp(26px,3vw,42px)' }}>あなたの子が小1になる年で、調べる。</h2>
           </div>
 
           <div className="ctl rise" ref={rise}>
@@ -264,7 +278,7 @@ export default function App() {
               )}
             </div>
             <div className="g" style={{ marginLeft: 'auto' }}>
-              <span className="k">登録率は毎年</span>
+              <span className="k">学童を使う子の割合は毎年</span>
               <input
                 className="rng"
                 type="range"
@@ -336,14 +350,13 @@ export default function App() {
               <p className="hint">スクロールで拡大・ドラッグで移動・ダブルクリックで戻る</p>
               {missing.length > 0 && (
                 <p className="stub">
-                  ⚠️ グレーの{missing.length}自治体はまだデータがありません（①のデータ整備待ち。
-                  いまは {DATA.munis.length}自治体のサンプルで動いています）
+                  ⚠️ グレーの{missing.length}自治体はデータがありません（0点ではありません）
                 </p>
               )}
             </div>
             <div>
               <p className="k" style={{ marginBottom: 12 }}>
-                リスクの高い自治体
+                入れない割合が高い順
               </p>
               <div className="rank">
                 {order.slice(0, 10).map((m, i) => {
@@ -360,7 +373,7 @@ export default function App() {
                     >
                       <span className="i tab">{i + 1}</span>
                       <span className="nm">{m}</span>
-                      <span className="v tab">{s === null ? '—' : Math.round(s)}</span>
+                      <span className="v tab">{s === null ? '—' : `${Math.round(s)}%`}</span>
                       <span className="sp">
                         <i
                           style={{
@@ -384,14 +397,14 @@ export default function App() {
             </p>
             <div className="big tab">
               {fmt(selCell?.detail.gap)}
-              <small>人分、足りない</small>
+              <small>人が、入れない</small>
             </div>
             <div className="facts">
               <span>
-                需要 <b className="tab">{fmt(selCell?.detail.demand)}</b> 人
+                必要な数 <b className="tab">{fmt(selCell?.detail.demand)}</b> 人
               </span>
               <span>
-                受け入れ実績 <b className="tab">{fmt(selCell?.detail.supply)}</b> 人
+                いまの受け入れ <b className="tab">{fmt(selCell?.detail.supply)}</b> 人
               </span>
               <span>
                 いまの待機児童 <b className="tab">{fmt(selGakudo?.waiting)}</b> 人
@@ -406,7 +419,7 @@ export default function App() {
                 <span className="ic">{note.kind === 'real-shortage' ? '⚠' : 'ⓘ'}</span>
                 <div>
                   {note.kind === 'real-shortage'
-                    ? '需要が無いのではなく、受け皿が足りていません。'
+                    ? shortageLine(selMuni)
                     : note.kind === 'series-break'
                       ? '2023年と2025年で計上方法が変わっています。'
                       : '対象児童数が少なく、比率が安定しません。'}
@@ -420,30 +433,40 @@ export default function App() {
 
             {sel && <Series core={core} muni={sel} theme={theme} />}
 
+            <p className="k" style={{ marginTop: 34, marginBottom: 12 }}>
+              打てる手は、まだある。
+            </p>
+            {/* 🔴 押せるもの（.act）と、読むだけの助言（.advice）を見た目で分ける。
+                同じ見た目で片方だけ押せるのが、体験として一番よくない */}
             <div className="acts">
-              {alternatives.length === 0 && (
-                <span className="act" style={{ cursor: 'default', color: 'var(--ink-3)' }}>
-                  隣接自治体のデータがまだありません（①のデータ整備待ち）
-                </span>
+              {alternatives.length === 0 ? (
+                <span className="advice">この自治体に隣接する自治体のデータがありません。</span>
+              ) : (
+                alternatives.map((a) => (
+                  <span
+                    className="act"
+                    key={a.muni}
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => setSelected(a.muni)}
+                    onKeyDown={(e) => e.key === 'Enter' && setSelected(a.muni)}
+                  >
+                    隣の<b>{a.muni}</b>を見る　入れない割合 {Math.round(a.score)}%
+                  </span>
+                ))
               )}
-              {alternatives.map((a) => (
-                <span className="act" key={a.muni} onClick={() => setSelected(a.muni)}>
-                  隣接：<b>{a.muni}</b> {Math.round(a.score)}
-                </span>
-              ))}
-              <span className="act">
-                入学年度に合わせて<b>時期をずらす</b>
-              </span>
-              <span className="act">
-                民間学童を<b>資金計画に入れる</b>
-              </span>
             </div>
+            <ul className="advices">
+              <li>住み替えの時期を、入学年度に合わせてずらす</li>
+              <li>民間学童の費用を、最初から資金計画に入れる</li>
+              <li>保育園を選ぶ段階で、学童併設・学校併設を条件に入れる</li>
+            </ul>
           </div>
 
           {/* ヒートマップ */}
           <div className="hm rise" ref={rise}>
             <div className="hmhd">
-              <p className="k">いつ悪化するか</p>
+              <p className="k">受け皿が今のままなら、いつ</p>
               <button className="more-btn" onClick={() => setExpanded((v) => !v)}>
                 {expanded ? '上位10件に戻す' : `${core.munis.length}自治体すべて`}
               </button>
@@ -507,8 +530,9 @@ export default function App() {
                   <small style={{ fontSize: '.5em' }}>%</small>
                 </div>
                 <div className="l">
-                  {b.horizon}年先の絶対誤差平均。都の推計ヴィンテージを{b.n}地区で突き合わせた実測
-                  （10〜90パーセンタイル {b.p10Pct.toFixed(2)}〜{b.p90Pct.toFixed(2)}%）
+                  {b.horizon}年先の絶対誤差平均。都が3年分出している推計を、あとから出た実数と
+                  {b.n}自治体で突き合わせた結果です（10〜90パーセンタイル{' '}
+                  {b.p10Pct.toFixed(2)}〜{b.p90Pct.toFixed(2)}%）
                 </div>
               </div>
             ))}
@@ -518,7 +542,7 @@ export default function App() {
                 <small style={{ fontSize: '.5em' }}>pt</small>
               </div>
               <div className="l">
-                登録率の年あたり上昇。{TREND.n}自治体の実測（
+                学童を使う子の割合の、年あたり上昇。{TREND.n}自治体の実測（
                 {(TREND.rateFrom * 100).toFixed(1)}% → {(TREND.rateTo * 100).toFixed(1)}%）
                 {TREND.excluded.length > 0 && `／${TREND.excluded.join('・')}は計上方法が変わったため除外`}
               </div>
@@ -577,7 +601,7 @@ function Row({
             className={`c${c?.basis === 'bridged' ? ' br' : ''}${y === core.bridgeFrom ? ' bridge-start' : ''}`}
             key={y}
             style={{ background: fillOf(s, palette), color: palette.ink[binOf(s)] }}
-            title={`${muni} ${y}年度　リスク ${Math.round(s)}　不足 ${fmt(c?.detail.gap)}人`}
+            title={`${muni} ${y}年度　入れない割合 ${Math.round(s)}%（${fmt(c?.detail.gap)}人）`}
           >
             {Math.round(s)}
           </div>

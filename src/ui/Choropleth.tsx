@@ -46,7 +46,7 @@ function ChoroplethBase({
       viewBox={viewBox ?? `0 0 ${MAP_W} ${MAP_H}`}
       role={decorative ? 'presentation' : 'img'}
       aria-hidden={decorative || undefined}
-      aria-label={decorative ? undefined : '東京都49自治体の学童リスク地図'}
+      aria-label={decorative ? undefined : '東京都49自治体の、学童に入れない割合の地図'}
       {...handlers}
     >
       {geo.shapes.map((s) => {
@@ -65,7 +65,7 @@ function ChoroplethBase({
           >
             {!decorative && (
               <title>
-                {s.name}　{score === null ? 'データなし' : `リスク ${Math.round(score)}`}
+                {s.name}　{score === null ? 'データなし' : `入れない割合 ${Math.round(score)}%`}
               </title>
             )}
           </path>

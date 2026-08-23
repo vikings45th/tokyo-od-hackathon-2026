@@ -84,17 +84,17 @@ export function Series({ core, muni, theme }: { core: CoreResult; muni: string; 
   return (
     <div className="series">
       <div className="series-hd">
-        <p className="k">需要と受け入れ実績（人）</p>
+        <p className="k">必要な数と、入れる数（人）</p>
         <span className="series-legend">
-          <span style={{ background: color.demand }} />需要
-          <span style={{ background: color.supply }} />受け入れ実績
+          <span style={{ background: color.demand }} />必要な数
+          <span style={{ background: color.supply }} />入れる数
           <span className="bandkey" style={{ background: color.demand }} />予測区間
         </span>
       </div>
       <svg
         viewBox={`0 0 ${W} ${H}`}
         role="img"
-        aria-label={`${muni}の需要と受け入れ実績の推移`}
+        aria-label={`${muni}の、学童を必要とする子の数と、実際に入れる数の推移`}
         onMouseLeave={() => setHover(null)}
       >
         {/* 目盛り。3本だけ */}
@@ -125,10 +125,10 @@ export function Series({ core, muni, theme }: { core: CoreResult; muni: string; 
 
         {/* 直接ラベル。凡例と二重に持たせる（色だけに頼らない） */}
         <text className="lbl dl" x={W - PAD.r + 8} y={y(last.demand)} dominantBaseline="middle">
-          需要
+          必要な数
         </text>
         <text className="lbl dl" x={W - PAD.r + 8} y={y(last.supply)} dominantBaseline="middle">
-          実績
+          入れる数
         </text>
 
         {/* 年度ラベルは端と境界だけ */}
@@ -163,7 +163,7 @@ export function Series({ core, muni, theme }: { core: CoreResult; muni: string; 
       <p className="series-tip">
         {h ? (
           <>
-            <b>{h.year}年度</b>　需要 <b>{fmt(h.demand)}</b>人（{fmt(h.lo)}〜{fmt(h.hi)}）／ 受け入れ実績{' '}
+            <b>{h.year}年度</b>　必要な数 <b>{fmt(h.demand)}</b>人（{fmt(h.lo)}〜{fmt(h.hi)}）／ 入れる数{' '}
             <b>{fmt(h.supply)}</b>人{h.bridged && '　※推定区間'}
           </>
         ) : (
