@@ -1,56 +1,11 @@
-/** スクロール演出と地図操作のフック。ライブラリは入れない。 */
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { MAP_H, MAP_W, type Box } from './geo';
-
 /**
- * 画面に入ったら data-in を立てる（CSS 側でフェードイン）。
+ * 地図の操作とテーマのフック。ライブラリは入れない。
  *
- * ⚠️ JS が動かない／`prefers-reduced-motion` のときは CSS の既定が「可視」なので、
- *    何もしなくても内容は読める。ここで隠す責任は持たない。
+ * 2026-08-23 第2版で `useInView` / `useScrollStep` / `useScrollSpy` を削除した。
+ * スクロール連動の演出（フェードイン・年送り・解説列のナビ）をすべてやめたため。
  */
-export function useInView<T extends HTMLElement>(): (el: T | null) => void {
-  const io = useRef<IntersectionObserver | null>(null);
-  if (io.current === null && typeof IntersectionObserver !== 'undefined') {
-    io.current = new IntersectionObserver(
-      (es) => es.forEach((e) => e.isIntersecting && e.target.setAttribute('data-in', '')),
-      { threshold: 0.18 },
-    );
-  }
-  useEffect(() => () => io.current?.disconnect(), []);
-  return useCallback((el: T | null) => {
-    if (el) io.current?.observe(el);
-  }, []);
-}
-
-/** S3：スクロール位置に応じて「いま何番目のステップか」を返す */
-export function useScrollStep(count: number): [number, (i: number) => (el: HTMLElement | null) => void] {
-  const [step, setStep] = useState(0);
-  const els = useRef<Array<HTMLElement | null>>(Array(count).fill(null));
-
-  useEffect(() => {
-    if (typeof IntersectionObserver === 'undefined') return;
-    const io = new IntersectionObserver(
-      (es) => {
-        for (const e of es) {
-          if (!e.isIntersecting) continue;
-          const i = els.current.indexOf(e.target as HTMLElement);
-          if (i >= 0) setStep(i);
-        }
-      },
-      { rootMargin: '-50% 0px -50% 0px' },
-    );
-    for (const el of els.current) if (el) io.observe(el);
-    return () => io.disconnect();
-  }, [count]);
-
-  const ref = useCallback(
-    (i: number) => (el: HTMLElement | null) => {
-      els.current[i] = el;
-    },
-    [],
-  );
-  return [step, ref];
-}
+import { useEffect, useRef, useState } from 'react';
+import { MAP_H, MAP_W, type Box } from './geo';
 
 const FULL: Box = { x: 0, y: 0, w: MAP_W, h: MAP_H };
 
@@ -148,46 +103,4 @@ export function useTheme(): ['light' | 'dark', () => void] {
     document.documentElement.dataset.theme = theme;
   }, [theme]);
   return [theme, () => setTheme((t) => (t === 'light' ? 'dark' : 'light'))];
-}
-
-/**
- * いま画面のどのパネルを見ているか。解説列のナビに現在地を出すため。
- *
- * ⚠️ 固定ヘッダのぶんだけ上端を削っている（rootMargin の上側）。
- *    削らないと、ヘッダに隠れているパネルが「現在地」になる。
- */
-export function useScrollSpy(ids: string[], topOffset = 110): string | null {
-  const [active, setActive] = useState<string | null>(ids[0] ?? null);
-  const key = ids.join(',');
-
-  useEffect(() => {
-    if (typeof IntersectionObserver === 'undefined') return;
-    const tops = new Map<string, number>();
-    const io = new IntersectionObserver(
-      (es) => {
-        for (const e of es) {
-          if (e.isIntersecting) tops.set(e.target.id, e.boundingClientRect.top);
-          else tops.delete(e.target.id);
-        }
-        // 🔴 「いちばん上にあるもの」ではなく「上端を通り過ぎた最後のもの」。
-        //    前者だと、次のパネルを読んでいるあいだ手前のパネルが現在地のまま残る。
-        let best: string | null = null;
-        let bestTop = -Infinity;
-        for (const [id, top] of tops) if (top <= topOffset && top > bestTop) [best, bestTop] = [id, top];
-        if (best === null) {
-          let minTop = Infinity;
-          for (const [id, top] of tops) if (top < minTop) [best, minTop] = [id, top];
-        }
-        if (best) setActive(best);
-      },
-      { rootMargin: `-${topOffset}px 0px -45% 0px`, threshold: 0 },
-    );
-    for (const id of key.split(',')) {
-      const el = document.getElementById(id);
-      if (el) io.observe(el);
-    }
-    return () => io.disconnect();
-  }, [key, topOffset]);
-
-  return active;
 }

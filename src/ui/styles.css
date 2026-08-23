@@ -1,12 +1,17 @@
 /*
  * 画面のスタイル。
  *
- * ── 2026-08-23 リデザイン（③UI担当）──
- * 「パワポで作った資料を PDF にしたもの」に見える、を構造で解いた版。
- *   1. min-height:100vh の全画面セクションを全廃 → 1画面＝1枚 の律動を消す
- *   2. 6セクションの同型反復を廃止 → 常設の計器列（.inst）＋ 高さの揃わない解説列（.rail）
- *   3. 触れる面を最初から出す → 固定ヘッダ（.bar）に入力、地図は初期表示から実物
- * 詳細は docs/21-redesign.md。
+ * ── 2026-08-23 リデザイン（第2版）──
+ * 第1版は「固定ヘッダ＋左に凍結した計器列＋右に流れる解説列」の2列にしたが、
+ * それは**ダッシュボードの語彙**だった。このページは毎日開く道具ではなく、
+ * 「知っている側が、知らない側に見せる」1回きりの画面（docs/20-service-canvas.md）。
+ * → 凍結ペインを捨てて **1本の縦スクロール**に戻し、LP → 道具 の順に手渡す。
+ *
+ * 🔴 モード転換の合図は「幅」で作る。凍結ペインではない。
+ *      .read  660px 中央寄せ … 読む（#lede #why #ask #evidence #sources）
+ *      .wide 1360px          … 使う（#tool #muni #heat #scenario）
+ *    幅が変わること自体が「ここから道具です」の宣言になる。
+ *    切り替わりは**1往復だけ**（読む → 使う → 読む）。交互に出すと元の「同型反復」に戻る。
  *
  * ⚠️ ランプの最淡 #86b6ef は純白系の面でないと対面2:1を割る。
  *    #ffffff 2.11 / #fcfcfb 2.06 は PASS、#f7f7f5 は 1.97 で FAIL。
@@ -25,14 +30,15 @@
   --warn:#b06a00; --crit:#c23434;
   --btn-bg:#0d366b; --btn-ink:#ffffff;
 
-  /* 骨格。固定ヘッダの高さは sticky の基準にもなる */
+  /* 骨格 */
   --bar-h:58px;
-  --gut:36px;      /* ページ左右の余白 */
-  --col-gap:34px;  /* 計器列と解説列のあいだ */
-  --rail:498px;    /* 解説列の幅（1440px 主戦場での実測値） */
+  --gut:36px;
+  --read:660px;   /* 読む幅。日本語で1行 約34文字 */
+  --wide:1360px;  /* 使う幅 */
 
-  --fs-lede:clamp(27px,2.6vw,42px);
-  --fs-result:clamp(40px,3.8vw,62px);
+  --fs-h1:clamp(30px,3.2vw,50px);
+  --fs-h2:clamp(21px,2.1vw,30px);
+  --fs-result:clamp(38px,3.4vw,54px);
 }
 :root[data-theme="dark"]{
   --bg-0:#0a0a0b; --bg-1:#101011; --bg-2:#16161a;
@@ -56,10 +62,10 @@ body{
 .k{font-size:13px;color:var(--ink-3);font-weight:700;letter-spacing:.04em}
 .dim{color:var(--ink-3)}
 .hl{color:var(--accent)}
-.lede{font-size:clamp(15px,1.2vw,17px);color:var(--ink-2);max-width:34em}
 
 /* ══════════════════════════════════════════════════════════
-   固定ヘッダ。ここに主入力を置くことで「読み物」ではなく「道具」と最初に名乗る
+   固定ヘッダ。ペインではなくツールバー。主入力をここに置いて、
+   「触れる面が5番目に埋もれる」を再発させない
    ══════════════════════════════════════════════════════════ */
 .bar{
   position:fixed;top:0;left:0;right:0;height:var(--bar-h);z-index:30;
@@ -67,7 +73,6 @@ body{
   display:flex;align-items:center;gap:16px;padding:0 var(--gut);
 }
 .bar .brand{font-size:15.5px;font-weight:800;letter-spacing:-.03em;white-space:nowrap}
-.bar .brandsub{font-size:12px;color:var(--ink-3);white-space:nowrap}
 .bar .sep{width:1px;height:20px;background:var(--hair);flex:none}
 .bar .ctl{display:flex;align-items:center;gap:8px;white-space:nowrap;min-width:0}
 .bar .right{margin-left:auto;display:flex;align-items:center;gap:12px;flex:none}
@@ -75,119 +80,134 @@ body{
 .barlink{font-size:13px;font-weight:700;color:var(--ink-2);text-decoration:none;
   border-bottom:1px solid var(--hair);white-space:nowrap}
 .barlink:hover{color:var(--ink-1);border-bottom-color:var(--ink-3)}
+.barlink.go{color:var(--accent);border-bottom-color:currentColor}
 .theme-btn{background:var(--bg-2);border:1px solid var(--hair);color:var(--ink-2);
   border-radius:999px;padding:6px 12px;font:inherit;font-size:12px;font-weight:700;cursor:pointer}
 .theme-btn:hover{color:var(--ink-1);border-color:var(--ink-3)}
 
 /* ══════════════════════════════════════════════════════════
-   作業面。左＝常設の計器（地図・年・結果）、右＝流れる解説
+   幅の2型。section は全幅（罫を端から端まで引くため）、
+   中身だけを .read / .wide で絞る
    ══════════════════════════════════════════════════════════ */
-.work{
-  display:grid;grid-template-columns:minmax(0,1fr) var(--rail);
-  column-gap:var(--col-gap);align-items:start;
-  max-width:1560px;margin:0 auto;padding:0 var(--gut);
-}
+section{padding:58px 0;scroll-margin-top:calc(var(--bar-h) + 12px)}
+.read{max-width:var(--read);margin:0 auto;padding:0 var(--gut)}
+.wide{max-width:var(--wide);margin:0 auto;padding:0 var(--gut)}
+.lede{font-size:16px;color:var(--ink-2)}
+h1{font-size:var(--fs-h1);font-weight:800;letter-spacing:-.045em;line-height:1.18}
+h2{font-size:var(--fs-h2);font-weight:800;letter-spacing:-.035em;line-height:1.35}
 
-/* ── 計器列。スクロールしても消えない ── */
-.inst{
-  position:sticky;top:var(--bar-h);height:calc(100vh - var(--bar-h));
-  display:flex;flex-direction:column;padding:18px 0 14px;min-width:0;
-}
-.instmain{flex:1;min-height:0;display:flex;flex-direction:column}
-.instmap{position:relative;flex:1;min-height:0;display:flex}
-.instmap svg{flex:1;min-width:0;width:100%;height:100%;display:block;cursor:grab;touch-action:none}
-.instmap svg:active{cursor:grabbing}
+/* ── #lede ── 表紙にしない。1画面は占有させない ── */
+#lede{padding-top:46px;min-height:52vh;display:flex;flex-direction:column;justify-content:center}
+#lede h1 em{font-style:normal;color:var(--accent)}
+#lede .lede{margin-top:18px}
+.outrange{margin-top:14px;font-size:13px;color:var(--warn);font-weight:700}
+
+/* 意思決定と痛みのあいだの年数。旧S1の全画面タイムラインを1行に縮めたもの */
+.tl{margin-top:34px;position:relative;height:72px}
+.tl .line{position:absolute;left:0;right:0;top:21px;height:1px;background:var(--hair)}
+.tl .fill{position:absolute;left:0;right:0;top:21px;height:1px;
+  background:linear-gradient(90deg,var(--num-a),var(--accent))}
+.tl .pt{position:absolute;top:14px;width:15px;height:15px;border-radius:50%;background:var(--bg-0);
+  border:1px solid var(--accent);display:grid;place-items:center}
+.tl .pt b{width:5px;height:5px;border-radius:50%;background:var(--accent)}
+.tl .yr{position:absolute;top:-5px;font-size:12px;font-weight:800;color:var(--accent)}
+.tl .cap{position:absolute;top:41px;font-size:12.5px;color:var(--ink-2);white-space:nowrap}
+.tl .mid{position:absolute;top:-5px;left:50%;transform:translateX(-50%);
+  font-size:12px;font-weight:700;color:var(--ink-3);background:var(--bg-0);padding:0 8px}
+
+/* ── #why ── 困りごと。箇条書きではなく、数字を持った3つの段落 ── */
+.why-list{margin-top:26px;display:grid;gap:0}
+.why-list > div{padding:20px 0;border-top:1px solid var(--hair)}
+.why-list > div:last-child{border-bottom:1px solid var(--hair)}
+/* 🔴 3つとも大きな色付き見出しにすると、それ自体が「同型の反復」になる。
+      強調するのは数字だけにして、文は本文の重さで置く。 */
+.why-list .wn{font-size:17.5px;font-weight:800;letter-spacing:-.025em;line-height:1.5}
+.why-list .wn b{color:var(--accent);font-weight:800}
+.why-list .wt{margin-top:8px;font-size:13.5px;color:var(--ink-2);line-height:1.85}
+.why-list code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px;
+  color:var(--ink-1);background:var(--bg-2);padding:1px 5px;border-radius:4px}
+
+/* ── #ask ── 蝶番。ページ唯一の「入力の山場」。箱は使わず罫で挟むだけ ── */
+#ask{border-top:1px solid var(--hair);border-bottom:1px solid var(--hair);background:var(--bg-1)}
+.askrow{margin-top:22px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.askrow .pick{font-size:17px;font-weight:700;padding:11px 34px 11px 15px;
+  background-position:calc(100% - 17px) 54%,calc(100% - 11px) 54%}
+.askrow .arrow{color:var(--ink-3);font-size:15px}
+.askeq{font-size:clamp(24px,2.4vw,34px);font-weight:800;letter-spacing:-.04em;color:var(--accent)}
+.askgo{margin-top:20px;display:inline-flex;align-items:center;gap:8px;
+  background:var(--btn-bg);color:var(--btn-ink);border:0;border-radius:11px;
+  padding:12px 22px;font:inherit;font-size:14px;font-weight:800;cursor:pointer;text-decoration:none}
+.askgo:hover{opacity:.88}
+
+/* ══════════════════════════════════════════════════════════
+   ── ここから「使う」── section に罫を引いて端から端まで見せる
+   ══════════════════════════════════════════════════════════ */
+#tool{border-top:1px solid var(--hair)}
+.secthd{display:flex;align-items:baseline;justify-content:space-between;gap:16px;
+  flex-wrap:wrap;margin-bottom:22px}
+.secthd .pmeta{font-size:12.5px;color:var(--ink-3)}
+
+/* 🔴 sticky にしない。ふつうに流れる1つの図版として置く。
+      「左が止まって右が動く」は二度とやらない。 */
+.toolgrid{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:38px;align-items:start}
+.mapfig{position:relative}
+.mapfig svg{width:100%;height:auto;display:block;cursor:grab;touch-action:pan-y}
+.mapfig svg:active{cursor:grabbing}
 .mp{stroke:var(--bg-0);stroke-width:.7;vector-effect:non-scaling-stroke}
 .mp.sel{stroke:var(--ink-1);stroke-width:2.2;vector-effect:non-scaling-stroke}
-.zoombar{position:absolute;right:0;top:0;display:flex;gap:6px;z-index:2}
+.zoombar{position:absolute;right:0;top:0;display:flex;gap:6px;flex-wrap:wrap;
+  justify-content:flex-end;z-index:2}
 .zb{background:var(--bg-2);border:1px solid var(--hair);color:var(--ink-2);border-radius:8px;
   padding:6px 11px;font:inherit;font-size:12.5px;font-weight:700;cursor:pointer}
 .zb:hover:not(:disabled){color:var(--ink-1);border-color:var(--ink-3)}
 .zb:disabled{opacity:.45;cursor:default}
-.legend{position:absolute;left:0;bottom:0;display:flex;align-items:center;gap:7px;
-  font-size:12px;color:var(--ink-3);background:var(--bg-0);padding:3px 8px 3px 0;z-index:2}
+.legend{display:flex;align-items:center;gap:7px;margin-top:8px;font-size:12px;color:var(--ink-3)}
 .legend .bar-ramp{display:flex;border-radius:3px;overflow:hidden}
-.legend .bar-ramp i{width:28px;height:8px}
+.legend .bar-ramp i{width:30px;height:8px}
 .legend .bar-ramp .tip{border-bottom:0;display:flex}
-.hint{position:absolute;right:0;bottom:0;font-size:12px;color:var(--ink-3);
-  background:var(--bg-0);padding-left:8px;z-index:2}
-.stub{position:absolute;left:0;bottom:24px;font-size:12px;color:var(--warn);z-index:2}
+.legend .hint{margin-left:auto}
+.hint{font-size:12px;color:var(--ink-3)}
+.stub{margin-top:8px;font-size:12.5px;color:var(--warn)}
 
-/* ── 年スクラバ。旧 S3 の「スクロールで年が進む物語」は、この1本の操作子に畳んだ ── */
-.scrub{margin-top:14px;padding-top:13px;border-top:1px solid var(--hair)}
-.scrub-hd{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:9px}
-.scrub-y{font-size:21px;font-weight:800;letter-spacing:-.03em;color:var(--accent)}
+/* 年スクラバ。2026→2038 の物語は、スクロール演出ではなくこの1本に集約した */
+.scrub{margin-top:20px;padding-top:16px;border-top:1px solid var(--hair)}
+.scrub-hd{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:10px}
+.scrub-y{font-size:22px;font-weight:800;letter-spacing:-.03em;color:var(--accent)}
 .scrub-tag{font-size:11.5px;font-weight:700;color:var(--ink-3);
   border:1px solid var(--hair);border-radius:999px;padding:2px 9px}
 .scrub-tag.est{color:var(--warn);border-color:var(--warn)}
 .scrub-back{margin-left:auto}
 .scrub-rng{width:100%;display:block}
 /* 目盛りは、つまみの可動域（左右 7px ぶん内側）に合わせて寄せる。
-   ⚠️ 「小1」と「推定→」は年度が重なりうる（実測：小1が2031年度・推定の始まりも2031年度）。
-      同じ行に置くと必ず重なるので、2行に分けている。 */
+   ⚠️「小1」と「推定の始まり」は年度が重なりうる（実測：どちらも2031年度）。
+      同じ行に置くと必ず重なるので2行に分けている。 */
 .scrub-ax{position:relative;height:30px;margin:3px 7px 0}
 .scrub-ax span{position:absolute;top:15px;transform:translateX(-50%);font-size:11px;
   color:var(--ink-3);white-space:nowrap}
 .scrub-ax span.lo{left:0;transform:none}
 .scrub-ax span.hi{left:100%;transform:translateX(-100%)}
 .scrub-ax span.you{top:0;color:var(--accent);font-weight:700}
+.scrub-why{margin-top:10px;font-size:12.5px;color:var(--ink-3)}
 .rng{-webkit-appearance:none;appearance:none;height:3px;border-radius:9px;background:var(--hair);outline:0}
 .rng::-webkit-slider-thumb{-webkit-appearance:none;width:15px;height:15px;border-radius:50%;
   background:var(--accent);cursor:pointer}
 .rng::-moz-range-thumb{width:15px;height:15px;border:0;border-radius:50%;background:var(--accent);cursor:pointer}
 .rng:disabled::-webkit-slider-thumb{background:var(--ink-3)}
 
-/* ── 結果帯。旧 S2 の「巨大な数字1枚」を、消えない1行に溶かしたもの ── */
-.result{margin-top:14px;padding-top:13px;border-top:1px solid var(--hair)}
+/* 🔴 出典は地図のすぐ下に必ず1行出す（FR-8）。完全な一覧は #sources */
+.minisrc{margin-top:16px;padding-top:12px;border-top:1px solid var(--hair);
+  font-size:11.5px;color:var(--ink-3);line-height:1.6}
+.minisrc a{color:var(--ink-3)}
+
+/* 選択自治体の結果。数字を右の柱に立てる */
 .result .who{font-size:12.5px;font-weight:800;color:var(--accent);letter-spacing:.04em}
-.result .row{display:flex;align-items:baseline;gap:24px;flex-wrap:wrap;margin-top:2px}
-.result .big{font-size:var(--fs-result);font-weight:800;letter-spacing:-.055em;line-height:1.05}
+.result .big{font-size:var(--fs-result);font-weight:800;letter-spacing:-.055em;line-height:1.05;margin-top:4px}
 .result .big small{font-size:.3em;font-weight:700;letter-spacing:-.01em;margin-left:9px;color:var(--ink-2)}
-.result .facts{display:flex;gap:20px;flex-wrap:wrap;font-size:12.5px;color:var(--ink-2)}
-.result .facts b{color:var(--ink-1);font-weight:700}
-/* 出典は常時表示。JS 無効時の noscript と合わせて FR-8 の二重の担保 */
-.credit{margin-top:11px;padding-top:10px;border-top:1px solid var(--hair);
-  font-size:11.5px;color:var(--ink-3);line-height:1.55}
-.credit a{color:var(--ink-3)}
-
-/* ══════════════════════════════════════════════════════════
-   解説列。パネルは高さも中身の型もそろえない（同型反復＝スライドマスターを避ける）
-   ══════════════════════════════════════════════════════════ */
-.rail{min-width:0;padding-bottom:12vh}
-.railnav{position:sticky;top:var(--bar-h);z-index:12;background:var(--bg-0);
-  display:flex;gap:15px;padding:11px 0;border-bottom:1px solid var(--hair);
-  overflow-x:auto;scrollbar-width:none}
-.railnav::-webkit-scrollbar{display:none}
-.railnav a{font-size:12.5px;font-weight:700;color:var(--ink-3);text-decoration:none;white-space:nowrap}
-.railnav a:hover{color:var(--ink-2)}
-.railnav a.on{color:var(--ink-1);text-decoration:underline;text-underline-offset:5px}
-
-.p{padding:38px 0;border-top:1px solid var(--hair);scroll-margin-top:calc(var(--bar-h) + 46px)}
-.railnav + .p{border-top:0;padding-top:30px}
-.phd{display:flex;align-items:baseline;justify-content:space-between;gap:14px;margin-bottom:14px}
-.pmeta{font-size:12px;color:var(--ink-3);text-align:right;white-space:nowrap}
-
-/* 導入。ここだけ字を大きくする。ただし1画面を占有はしない（＝表紙にしない） */
-.p-lede h1{font-size:var(--fs-lede);font-weight:800;letter-spacing:-.045em;line-height:1.16}
-.p-lede h1 em{font-style:normal;color:var(--accent)}
-.p-lede .lede{margin-top:16px}
-.p-lede .now{margin-top:20px;font-size:14px;color:var(--ink-2)}
-.p-lede .now b{color:var(--accent);font-weight:800}
-.outrange{margin-top:12px;font-size:13px;color:var(--warn);font-weight:700}
-
-/* 意思決定と壁のあいだの年数。旧 S1 の全画面タイムラインを、入力の説明に縮めた */
-.tl{margin-top:26px;position:relative;height:74px}
-.tl .line{position:absolute;left:0;right:0;top:22px;height:1px;background:var(--hair)}
-.tl .fill{position:absolute;left:0;right:0;top:22px;height:1px;
-  background:linear-gradient(90deg,var(--num-a),var(--accent))}
-.tl .pt{position:absolute;top:15px;width:15px;height:15px;border-radius:50%;background:var(--bg-0);
-  border:1px solid var(--accent);display:grid;place-items:center}
-.tl .pt b{width:5px;height:5px;border-radius:50%;background:var(--accent)}
-.tl .yr{position:absolute;top:-4px;font-size:12px;font-weight:800;color:var(--accent)}
-.tl .cap{position:absolute;top:42px;font-size:12.5px;color:var(--ink-2);white-space:nowrap}
-.tl .mid{position:absolute;top:-4px;left:50%;transform:translateX(-50%);font-size:12px;color:var(--ink-3)}
-
-/* ランキング */
+.result .facts{display:grid;margin-top:18px}
+.result .facts span{display:flex;justify-content:space-between;align-items:baseline;gap:12px;
+  padding:8px 0;border-top:1px solid var(--hair);font-size:12.5px;color:var(--ink-2)}
+.result .facts b{color:var(--ink-1);font-weight:700;font-size:14px}
+.ranktitle{margin:30px 0 10px}
 .rank{display:flex;flex-direction:column;gap:2px}
 .rr{display:grid;grid-template-columns:16px 1fr 36px;align-items:center;gap:10px;
   padding:7px 9px;border-radius:9px;cursor:pointer}
@@ -199,15 +219,16 @@ body{
 .rr .sp{grid-column:2/4;height:2px;background:var(--hair);border-radius:9px;margin-top:-2px}
 .rr .sp i{display:block;height:100%;border-radius:9px}
 
-/* 選択自治体の解説 */
-.notice{margin-top:4px;font-size:13px;color:var(--ink-2);display:flex;gap:9px}
+/* ── #muni ── 数字は上に出ているので、ここは読み方 ── */
+#muni .prose{max-width:46em}
+.notice{font-size:13.5px;color:var(--ink-2);display:flex;gap:9px;max-width:46em}
 .notice .ic{color:var(--warn);font-weight:800}
 details.more{margin-top:7px}
 details.more summary{cursor:pointer;font-size:13px;color:var(--accent);list-style:none}
 details.more summary::-webkit-details-marker{display:none}
 details.more summary::before{content:'▸ '}
 details.more[open] summary::before{content:'▾ '}
-details.more p{margin-top:7px;font-size:13px;color:var(--ink-3)}
+details.more p{margin-top:7px;font-size:13px;color:var(--ink-3);max-width:46em}
 .acts{display:flex;gap:7px;flex-wrap:wrap;margin-top:14px}
 .act{border:1px solid var(--hair);border-radius:999px;padding:7px 14px;font-size:13px;
   color:var(--ink-2);cursor:pointer}
@@ -215,11 +236,11 @@ details.more p{margin-top:7px;font-size:13px;color:var(--ink-3)}
 .act b{color:var(--ink-1)}
 /* 押せない助言。.act と同じ見た目にすると「押せるのに反応しない」になる */
 .advice{font-size:13px;color:var(--ink-3)}
-.advices{margin:12px 0 0;padding-left:1.1em;font-size:13px;color:var(--ink-2);line-height:1.95}
+.advices{margin:14px 0 0;padding-left:1.1em;font-size:13.5px;color:var(--ink-2);line-height:1.95}
 .advices li{list-style:disc}
 
 /* 需要と受け入れの折れ線 */
-.series{margin-top:22px}
+.series{margin-top:24px;max-width:880px}
 .series svg{width:100%;height:auto;display:block;overflow:visible}
 .series .ax{stroke:var(--hair);stroke-width:1}
 .series .lbl{fill:var(--ink-3);font-size:13px}
@@ -235,58 +256,48 @@ details.more p{margin-top:7px;font-size:13px;color:var(--ink-3)}
 .series-tip{margin-top:9px;font-size:13px;color:var(--ink-2);min-height:3.2em}
 .series-tip b{color:var(--ink-1);font-weight:700}
 
-/* ── 物語。旧 S3（340vh・別の地図）を、同じ地図を動かす段組みに置き換えた ──
-   1段は 62vh。100vh にしないのは、次の段が必ず視界に入っていてほしいから
-   （＝「めくる」ではなく「続いている」）。 */
-.story .step{min-height:62vh;display:flex;flex-direction:column;justify-content:center;
-  padding:10px 0;transition:opacity .35s}
-.story .step.edge{min-height:46vh}
-.story .step .sy{font-size:12.5px;font-weight:800;color:var(--accent);letter-spacing:.08em}
-.story .step .st{font-size:clamp(17px,1.7vw,23px);font-weight:800;letter-spacing:-.03em;
-  line-height:1.5;margin-top:8px}
-.story .step .sn{margin-top:12px;font-size:13px;color:var(--ink-2);max-width:30em}
-body.js .story .step{opacity:.34}
-body.js .story .step.on,body.js .story .step.edge{opacity:1}
-@media (prefers-reduced-motion:reduce){ body.js .story .step{opacity:1} }
-
-/* ヒートマップ */
-.hmhd{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:12px}
-.grid{display:grid;grid-template-columns:74px repeat(12,1fr);gap:3px;align-items:center}
-.gh{font-size:11px;color:var(--ink-3);text-align:center}
+/* ── #heat ── 表（左）と、その読み方（右） ── */
+.heatwrap{display:grid;grid-template-columns:minmax(0,880px) 300px;gap:38px;align-items:start}
+.grid{display:grid;grid-template-columns:88px repeat(12,1fr);gap:3px;align-items:center}
+.gh{font-size:11.5px;color:var(--ink-3);text-align:center}
 .gh.br{color:var(--accent);font-weight:700}
-.gn{font-size:12.5px;color:var(--ink-2);text-align:right;padding-right:7px;white-space:nowrap;
+.gn{font-size:13px;color:var(--ink-2);text-align:right;padding-right:8px;white-space:nowrap;
   overflow:hidden;text-overflow:ellipsis;cursor:pointer}
 .gn:hover{color:var(--ink-1)}
 .gn.on{color:var(--accent);font-weight:800}
-.c{height:23px;border-radius:3px;font-size:11px;font-weight:700;
+.c{height:26px;border-radius:3px;font-size:11.5px;font-weight:700;
   display:flex;align-items:center;justify-content:center}
 .c.br{background-image:repeating-linear-gradient(45deg,rgba(var(--scrim),.40) 0 1px,transparent 1px 5px)}
 /* bridged の始まり。ハッチだけだと縮小時に見えないので縦の区切りを引く */
 .gh.bridge-start,.c.bridge-start{box-shadow:-2px 0 0 0 var(--accent)}
 .gh.bridge-start{font-weight:700}
-/* いま地図が見ている年度の列。地図とヒートマップを同じ時計で動かしていることを示す */
+/* いま見ている年度の列。地図と表を同じ時計で動かしていることを示す */
 .gh.now{color:var(--ink-1);font-weight:800}
 .c.now{outline:1px solid var(--ink-1);outline-offset:-1px}
-.bridge-note{margin-top:11px;font-size:12.5px;color:var(--ink-3);display:flex;align-items:flex-start;gap:7px}
-.bridge-note i{display:inline-block;width:2px;height:11px;background:var(--accent);margin-top:5px;flex:none}
+.heatnote{font-size:12.5px;color:var(--ink-3);line-height:1.75}
+.heatnote p{margin-bottom:14px}
+.heatnote .bridge-note{display:flex;align-items:flex-start;gap:7px}
+.heatnote .bridge-note i{display:inline-block;width:2px;height:11px;background:var(--accent);
+  margin-top:5px;flex:none}
 .more-btn{background:none;border:1px solid var(--hair);color:var(--ink-2);border-radius:999px;
   padding:6px 14px;font:inherit;font-size:12.5px;cursor:pointer}
 .more-btn:hover{border-color:var(--ink-3);color:var(--ink-1)}
 
-/* シナリオ */
+/* ── #scenario ── */
+#scenario .prose{max-width:52em}
 .presets{display:flex;gap:7px;flex-wrap:wrap}
 .preset{background:none;border:1px solid var(--hair);color:var(--ink-2);border-radius:999px;
-  padding:8px 15px;font:inherit;font-size:13px;cursor:pointer;text-align:left}
+  padding:9px 16px;font:inherit;font-size:13.5px;cursor:pointer;text-align:left}
 .preset:hover{border-color:var(--ink-3);color:var(--ink-1)}
 .preset.on{background:var(--btn-bg);color:var(--btn-ink);border-color:var(--btn-bg);font-weight:700}
-.preset-why{margin-top:12px;font-size:13px;color:var(--ink-2);line-height:1.75}
+.preset-why{margin-top:14px;font-size:13.5px;color:var(--ink-2);line-height:1.8;max-width:52em}
 .preset-why .assume{color:var(--warn);font-weight:700}
-.tweak{margin-top:18px;border-top:1px solid var(--hair);padding-top:14px}
+.tweak{margin-top:20px;border-top:1px solid var(--hair);padding-top:15px;max-width:52em}
 .tweak summary{cursor:pointer;font-size:12.5px;font-weight:700;color:var(--ink-3);list-style:none}
 .tweak summary::-webkit-details-marker{display:none}
 .tweak summary::before{content:'▸ ';color:var(--ink-3)}
 .tweak[open] summary::before{content:'▾ '}
-.tweakbody{display:flex;align-items:center;gap:11px;flex-wrap:wrap;margin-top:12px}
+.tweakbody{display:flex;align-items:center;gap:11px;flex-wrap:wrap;margin-top:13px}
 .tweakbody .rng{width:150px}
 .tweak-why{flex-basis:100%;margin:2px 0 0;font-size:12.5px;color:var(--ink-3)}
 .offnote{color:var(--warn);font-weight:700}
@@ -298,15 +309,19 @@ body.js .story .step.on,body.js .story .step.edge{opacity:1}
   background-image:linear-gradient(45deg,transparent 50%,var(--ink-3) 50%),linear-gradient(135deg,var(--ink-3) 50%,transparent 50%);
   background-position:calc(100% - 14px) 52%,calc(100% - 9px) 52%;background-size:5px 5px;background-repeat:no-repeat}
 
-/* 精度 */
-.ev{display:grid;grid-template-columns:1fr 1fr;gap:26px 20px}
+/* ══════════════════════════════════════════════════════════
+   ── ここで幅が戻る ── 確かめる
+   ══════════════════════════════════════════════════════════ */
+#evidence{border-top:1px solid var(--hair)}
+.ev{display:grid;grid-template-columns:1fr 1fr;gap:26px 24px;margin-top:26px}
 .ev > div:last-child{grid-column:1/-1}
-.ev .n{font-size:clamp(26px,2.6vw,36px);font-weight:800;letter-spacing:-.03em}
-.ev .l{font-size:12.5px;color:var(--ink-3);margin-top:5px;line-height:1.65}
+.ev .n{font-size:clamp(28px,2.8vw,38px);font-weight:800;letter-spacing:-.03em}
+.ev .l{font-size:12.5px;color:var(--ink-3);margin-top:5px;line-height:1.7}
+#evidence .lede{margin-top:26px;font-size:13.5px}
 
-/* 出典 */
-.src{font-size:13px;color:var(--ink-3);line-height:1.8}
-.srcgrp{margin-bottom:16px}
+#sources{padding-bottom:14vh}
+.src{font-size:13px;color:var(--ink-3);line-height:1.8;margin-top:24px}
+.srcgrp{margin-bottom:18px}
 .srclic{font-size:12.5px;font-weight:700;color:var(--ink-2);margin:0 0 5px}
 .srclist{margin:0;padding-left:1.15em;line-height:1.7}
 .srclist li{list-style:disc;margin-bottom:3px}
@@ -314,8 +329,8 @@ body.js .story .step.on,body.js .story .step.edge{opacity:1}
 .srclist a:hover{border-bottom-color:var(--ink-3)}
 .srcmeta{margin-left:9px;color:var(--ink-3)}
 .srcnote{margin:14px 0 0}
-.joinnote{margin-top:16px;padding-top:14px;border-top:1px solid var(--hair);
-  font-size:13px;color:var(--ink-2);line-height:1.8}
+.joinnote{margin-top:18px;padding-top:16px;border-top:1px solid var(--hair);
+  font-size:13.5px;color:var(--ink-2);line-height:1.85}
 .joinnote b{color:var(--ink-1)}
 
 /* ホバーで出す補足。native title だと読ませたい文が長すぎる */
@@ -327,75 +342,54 @@ body.js .story .step.on,body.js .story .step.edge{opacity:1}
 .tip:hover > .tipbody,.tip:focus-visible > .tipbody{opacity:1;visibility:visible}
 
 /* ══════════════════════════════════════════════════════════
-   ノートPC（〜1280px）：解説列を細くする。2列は保つ
+   ノートPC（〜1280px）
    ══════════════════════════════════════════════════════════ */
 @media (max-width:1280px){
-  :root{--rail:400px;--gut:26px;--col-gap:26px}
-  /* 8項目は 400px に1行で入らない。横スクロールに逃がさず折り返す */
-  .railnav{flex-wrap:wrap;overflow:visible;gap:9px 14px}
-  .grid{grid-template-columns:62px repeat(12,1fr);gap:2px}
-  .bar .brandsub{display:none}
+  :root{--gut:26px}
+  .toolgrid{grid-template-columns:minmax(0,1fr) 292px;gap:30px}
+  .heatwrap{grid-template-columns:minmax(0,1fr) 260px;gap:30px}
+  .grid{grid-template-columns:74px repeat(12,1fr);gap:2px}
 }
 
 /* ══════════════════════════════════════════════════════════
-   タブレット・スマホ（〜1000px）：計器を上に寝かせる。
-   「操作できる面が常にある」構造は捨てない ── 地図は sticky のまま
+   タブレット・スマホ（〜1000px）：1列に落とすだけ。
+   🔴 sticky は一切使わない。前版の display:contents ハックは不要になった
    ══════════════════════════════════════════════════════════ */
 @media (max-width:1000px){
   :root{--bar-h:52px;--gut:18px}
   body{padding-top:var(--bar-h)}
-  .work{display:block;padding:0 var(--gut)}
-  /* 計器そのもの（地図＋年スクラバ）だけを貼り付ける。結果帯まで貼ると画面の半分が埋まる。
-     🔴 .inst は display:contents。sticky は親の箱でしか粘れないので、
-        .inst を残したままだと .inst の高さぶんスクロールした時点で地図がはがれる。 */
-  .inst{display:contents}
-  /* 地図の縦横比そのまま。vh で切ると上下に無駄な余白が出る（実測 900:520） */
-  .instmain{position:sticky;top:var(--bar-h);z-index:11;background:var(--bg-0);
-    border-bottom:1px solid var(--hair);display:block;flex:none;padding:8px 0 10px}
-  .instmap{aspect-ratio:900/520;flex:none;min-height:0}
-  /* 縦スワイプはページのスクロールに渡す。地図の中で指が吸われると詰む */
-  .instmap svg{touch-action:pan-y}
-  .legend{font-size:11px}
-  .legend .bar-ramp i{width:20px}
-  .hint{display:none}
-  /* 貼り付く塊はできるだけ薄く。実測 390×844 で計器が画面の約半分に収まる高さ */
-  .scrub{margin-top:8px;padding-top:8px}
-  .scrub-hd{margin-bottom:6px}
-  .scrub-y{font-size:17px}
-  .scrub-ax{height:27px}
-  .result{margin-top:14px;padding-top:12px;border-top:0}
-  .result .row{gap:14px}
-  .result .facts{font-size:12px;gap:14px}
-  .credit{font-size:11px}
-  .railnav{top:auto;position:static;border-top:1px solid var(--hair);
-    flex-wrap:wrap;gap:12px 15px;overflow:visible}
-  .rail{padding-bottom:16vh}
-  .p{padding:30px 0}
-  .story .step{min-height:52vh}
-  .story .step.edge{min-height:30vh}
-  .grid{grid-template-columns:56px repeat(12,1fr);gap:1.5px;font-size:10px}
-  .c{height:19px;font-size:10px}
+  section{padding:40px 0}
+  #lede{min-height:auto;padding-top:34px}
+  .toolgrid,.heatwrap{grid-template-columns:1fr;gap:26px}
+  /* 地図の上でも縦スワイプはページに渡す。吸われるとスクロールが止まる */
+  .mapfig svg{touch-action:pan-y}
+  .zoombar{position:static;margin-bottom:8px}
+  .legend{flex-wrap:wrap}
+  .legend .hint{display:none}
+  .result{padding-top:4px}
+  .grid{grid-template-columns:58px repeat(12,1fr);gap:1.5px}
+  .c{height:21px;font-size:10.5px}
+  .gh{font-size:10.5px}
+  .gn{font-size:11.5px}
   .ev{grid-template-columns:1fr}
   .ev > div:last-child{grid-column:auto}
 }
 @media (max-width:600px){
-  /* 390px 幅では1行に収まらない（実測：ブランド95＋選択120＋年度72＋テーマ44＋隙間＞354）。
+  /* 390px 幅では1行に収まらない（ブランド95＋選択120＋年度72＋テーマ44＋隙間＞354）。
      どれかを消すのではなく2段にする。上段＝名前とテーマ、下段＝主入力。 */
   :root{--gut:14px;--bar-h:84px}
   .bar{gap:7px;flex-wrap:wrap;align-content:center;padding:6px var(--gut)}
-  .bar .ctl{order:3;flex-basis:100%}
+  .bar .ctl{order:3;flex-basis:100%;gap:5px}
   .bar .brand{font-size:13.5px}
   .bar .sep{display:none}
-  .bar .ctl{gap:5px}
   .bar .ctl .k{display:none}
   .bar .eq{font-size:14px}
   .barlink{display:none}
   .pick{padding:5px 21px 5px 8px;font-size:12.5px;
     background-position:calc(100% - 11px) 52%,calc(100% - 7px) 52%}
+  .askrow .pick{font-size:15px;padding:9px 28px 9px 12px}
   .theme-btn{padding:5px 9px;font-size:11px}
   .zb{padding:5px 9px;font-size:11.5px}
-  .result .big{font-size:34px}
-  .result .facts{font-size:11.5px;gap:12px}
-  .gn{font-size:11px}
-  .p-lede h1{font-size:26px}
+  .result .big{font-size:36px}
+  .gn{font-size:10.5px}
 }
