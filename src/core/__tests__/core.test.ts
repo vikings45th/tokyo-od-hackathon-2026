@@ -7,6 +7,7 @@ import {
   computeAll,
   entryYearOf,
   isEarlyBirth,
+  DEFAULT_TREND,
   latentFloorFromData,
   measureTrend,
   normalizeScenario,
@@ -64,20 +65,37 @@ describe('FR-1 入学年度', () => {
 });
 
 describe('決定1: N0 は official[2025]。baseChildren ではない', () => {
-  it('品川区は official[2025] を使う（baseChildren だと25%ずれて偽陽性になる）', () => {
-    const shinagawa = muniByName('品川区');
-    expect(n0Of(shinagawa)).toBe(18041);
-    expect(shinagawa.baseChildren).toBe(14417);
-    expect(rLatentOf(shinagawa)).toBeCloseTo(0.193, 3);
+  // 🔴 固定値（14417 など）を踏まないこと。①がデータを直すたびにテストが赤くなる（docs/19 依頼6）。
+  //    検証すべきは「どの系列から導かれているか」であって、特定の実測値ではない。
+  it('N0 は official[2025] の6学年合計から導かれる（全自治体）', () => {
+    for (const m of appData.munis) {
+      const officialSum = m.official.find((o) => o.year === 2025)!.grades.reduce((a, b) => a + b, 0);
+      expect(n0Of(m)).toBe(officialSum);
+    }
+  });
+
+  it('baseChildren が official[2025] とずれていても N0 は official を採る', () => {
+    // 実データが正しくなった以上、ズレは合成して作る。②が分母を取り違えると
+    // 分母と N(m,y) が別系列になり、基準年でスコアが狂う（品川区で 23 vs 7 の偽陽性が出ていた）
+    const skewed = { ...muniByName('品川区'), baseChildren: 14417 };
+    const officialSum = skewed.official.find((o) => o.year === 2025)!.grades.reduce((a, b) => a + b, 0);
+    expect(n0Of(skewed)).toBe(officialSum);
+    expect(n0Of(skewed)).not.toBe(14417);
   });
 
   it('中央区の r_latent は要件 §1-2 検証2 の実測値 0.163 と一致する', () => {
     expect(rLatentOf(muniByName('中央区'))).toBeCloseTo(0.163, 3);
   });
 
-  it('validateAppData が品川区のズレを検出する', () => {
-    const report = validateAppData(appData);
+  it('validateAppData は baseChildren と official[2025] のズレを検出する', () => {
+    const broken = {
+      ...appData,
+      munis: appData.munis.map((m) => (m.name === '品川区' ? { ...m, baseChildren: 14417 } : m)),
+    };
+    const report = validateAppData(broken);
     expect(report.problems.some((p) => p.includes('品川区') && p.includes('baseChildren'))).toBe(true);
+    // 正しいデータでは鳴らない
+    expect(validateAppData(appData).problems.some((p) => p.includes('baseChildren'))).toBe(false);
   });
 });
 
@@ -226,9 +244,13 @@ describe('予測区間', () => {
 
   it('band と demandBand は桁が違う（同じ軸に描かせないための回帰テスト）', () => {
     const r = buildMuniDetail(appData, '中央区').series.find((s) => s.year === 2031)!;
-    expect(r.demand).toBeCloseTo(2189.8, 0);
-    expect(r.band.lo).toBeCloseTo(9701.8, 0);
-    expect(r.demandBand.lo).toBeCloseTo(r.band.lo * r.targetRate, 9);
+    // band は児童数の帯。DEFAULT_TREND に依存しないので固定値で踏んでよい。
+    // 9701.8 → 9717.8：①が backtest を49自治体で再計算し p10Pct が -2.13 → -2.07 になったため
+    expect(r.band.lo).toBeCloseTo(9717.8, 0);
+    // 🔴 demand は trend で動くので固定値を踏まない。検証するのは「桁が違う」ことそのもの
+    expect(r.demand).toBeGreaterThan(r.demandBand.lo);
+    expect(r.demand).toBeLessThan(r.demandBand.hi);
+    expect(r.band.lo / r.demand).toBeGreaterThan(4);
     expect(r.band.lo / r.demandBand.lo).toBeGreaterThan(4);
   });
 });
@@ -246,8 +268,8 @@ describe('シナリオのクランプ（docs/15-interfaces.md §4）', () => {
     expect(s.housing[0]!.units).toBe(5000);
   });
 
-  it('未指定なら実測値 0.0084', () => {
-    expect(normalizeScenario(undefined).trend).toBe(0.0084);
+  it('未指定なら実測値（DEFAULT_TREND）', () => {
+    expect(normalizeScenario(undefined).trend).toBe(DEFAULT_TREND);
   });
 });
 
@@ -306,15 +328,14 @@ describe('純関数であること（設計書 §3）', () => {
     const ctx = buildForecastContext(appData);
     const m = muniByName('中央区');
     const p = projectMuni(m, 2031, ctx, normalizeScenario(undefined), appData.backtest)!;
-    const input = { muni: m, year: 2031, projection: p, scenario: { trend: 0.0084 } };
+    const input = { muni: m, year: 2031, projection: p, scenario: { trend: DEFAULT_TREND } };
     expect(gakudoIndicator.compute(input)).toEqual(gakudoIndicator.compute(input));
   });
 });
 
 describe('validateAppData', () => {
-  it('sample.json は品川区のズレ以外に致命的な問題が無い', () => {
-    const r = validateAppData(appData);
-    expect(r.problems.filter((p) => !p.includes('品川区'))).toEqual([]);
+  it('sample.json に致命的な問題は無い', () => {
+    expect(validateAppData(appData).problems).toEqual([]);
   });
 
   it('sources が空なら FR-8 違反として弾く', () => {

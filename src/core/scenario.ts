@@ -92,7 +92,9 @@ export const PRESET_SCENARIOS: readonly PresetScenario[] = [
   {
     id: 'baseline',
     label: '実測どおり（既定）',
-    description: '登録率は都の3時点データの実測どおり年 +0.84pt 上昇。クラブ数は据え置き（何もしなければどうなるか）。',
+    // 🔴 説明文に数字を書かないこと。画面はすぐ横に measureTrend() の実測値を出すので、
+    //    二重に持つと必ずずれる（docs/19 依頼7：説明「+0.84pt」vs 表示「+0.81pt」）。
+    description: '学童を使う子の割合は、都のデータから実測したとおりに上がると仮定。クラブ数は据え置き（何もしなければどうなるか）。',
     build: () => ({}),
   },
   {
@@ -104,14 +106,18 @@ export const PRESET_SCENARIOS: readonly PresetScenario[] = [
   },
   {
     id: 'trend15',
-    label: '登録率が年 +1.5pt 上がる',
-    description: '共働き世帯の増加が今より速く進んだ場合。実測（+0.84pt）の約1.8倍です。',
+    // 画面の語彙に合わせる（③は「学童を使う子の割合」で統一済み）
+    label: '使う子の割合が年 +1.5pt 上がる',
+    description: '共働き世帯の増加が、実測よりも速く進んだ場合。',
     build: () => ({ trend: 0.015 }),
   },
   {
     id: 'supply16',
     label: 'クラブが年 +1.6% 増える',
-    description: 'クラブ数の実測の伸び（1,933 → 1,997・年 +1.6%）がこのまま続いた場合。',
+    description:
+      'クラブ数の都計の伸び（1,933 → 1,997・年 +1.6%）がこのまま続いた場合。' +
+      '⚠️ この伸びは江戸川区（4→72）と中央区（15→31）がほぼ作っています。' +
+      '49自治体の中央値は年 +0.0%（19自治体は2年でクラブが1つも増えていません）。',
     build: ({ data }) => ({
       supplyGrowth: data.tokyo.allGrades.map((t) => ({
         year: t.year,
