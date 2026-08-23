@@ -1,0 +1,182 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    * , *::before, *::after { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: #ffffff;
+      color: #0b0b0b;
+      font-family: -apple-system, "SF Pro Display", "Hiragino Sans", "Noto Sans JP", system-ui, sans-serif;
+      font-size: 15px;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      font-feature-settings: "palt" 1;
+    }
+    a { color: #1c5cab; text-decoration: none; }
+    a:hover { color: #0d366b; }
+  </style>
+</helmet>
+
+<div style="padding: 104px 0 96px">
+  <div style="max-width: 1180px; margin: 0 auto; padding: 0 40px">
+
+    <p style="font-size: 11px; font-weight: 700; letter-spacing: .18em; color: #8a8983; margin: 0">データの出どころ</p>
+
+    <h2 style="font-size: 42px; font-weight: 800; letter-spacing: -.035em; line-height: 1.12; margin: 14px 0 0">この予測は、何からできているか。</h2>
+
+    <p style="font-size: 24px; line-height: 1.7; color: #52514e; max-width: 30em; margin: 22px 0 0">
+      使ったのは、東京都オープンデータカタログの<strong style="color: #0b0b0b; font-weight: 700">7データセット</strong>と、国土交通省の行政区域データ。<strong style="color: #0b0b0b; font-weight: 700">すべて CC BY 4.0</strong> です。
+    </p>
+
+    <!-- ── フロー本体。箱を使わず、縦のヘアラインだけで4つの段に割る ── -->
+    <div style="position: relative; display: grid; grid-template-columns: 440px 240px 200px 220px; margin-top: 62px">
+
+      <!-- 段のあいだのシェブロン。列幅が固定なので絶対配置できる -->
+      <svg width="9" height="14" viewBox="0 0 9 14" fill="none" style="position: absolute; left: 435px; top: 92px" aria-hidden="true">
+        <path d="M1.5 1.5 L7 7 L1.5 12.5" stroke="#8a8983" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <svg width="9" height="14" viewBox="0 0 9 14" fill="none" style="position: absolute; left: 675px; top: 92px" aria-hidden="true">
+        <path d="M1.5 1.5 L7 7 L1.5 12.5" stroke="#8a8983" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <svg width="9" height="14" viewBox="0 0 9 14" fill="none" style="position: absolute; left: 875px; top: 92px" aria-hidden="true">
+        <path d="M1.5 1.5 L7 7 L1.5 12.5" stroke="#8a8983" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+
+      <!-- ① 入力 -->
+      <div style="padding-right: 34px">
+        <p style="font-size: 11px; font-weight: 700; letter-spacing: .04em; color: #8a8983; margin: 0 0 20px">① 入力　東京都オープンデータカタログ</p>
+
+        <div style="display: flex; flex-direction: column; gap: 15px">
+
+          <div style="display: flex; flex-direction: column; gap: 3px">
+            <div style="display: flex; align-items: baseline; gap: 9px">
+              <span style="font-size: 15px; font-weight: 700; letter-spacing: -.01em">教育人口等推計</span>
+              <span style="font-size: 12px; color: #52514e">令和5・6・7年度版</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 9px">
+              <span style="font-size: 12px; color: #8a8983">東京都教育庁</span>
+              <span style="font-size: 10px; font-weight: 700; color: #0a6b3d; background: rgba(12,163,12,.10); border: 1px solid rgba(12,163,12,.28); padding: 2px 8px; border-radius: 999px">CC BY 4.0</span>
+            </div>
+          </div>
+
+          <div style="height: 1px; background: #e6e6e1"></div>
+
+          <div style="display: flex; flex-direction: column; gap: 3px">
+            <div style="display: flex; align-items: baseline; gap: 9px">
+              <span style="font-size: 15px; font-weight: 700; letter-spacing: -.01em">公立学校統計調査報告書</span>
+              <span style="font-size: 12px; color: #52514e">令和5・6・7年度版</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 9px">
+              <span style="font-size: 12px; color: #8a8983">東京都教育庁</span>
+              <span style="font-size: 10px; font-weight: 700; color: #0a6b3d; background: rgba(12,163,12,.10); border: 1px solid rgba(12,163,12,.28); padding: 2px 8px; border-radius: 999px">CC BY 4.0</span>
+            </div>
+          </div>
+
+          <div style="height: 1px; background: #e6e6e1"></div>
+
+          <div style="display: flex; flex-direction: column; gap: 3px">
+            <div style="display: flex; align-items: baseline; gap: 9px">
+              <span style="font-size: 15px; font-weight: 700; letter-spacing: -.01em">学童クラブ事業の区市町村別実施状況</span>
+            </div>
+            <div style="font-size: 12px; color: #52514e; font-variant-numeric: tabular-nums">2023-05 ／ 2025-05 ／ 2025-10 の3時点</div>
+            <div style="display: flex; align-items: center; gap: 9px">
+              <span style="font-size: 12px; color: #8a8983">東京都福祉局</span>
+              <span style="font-size: 10px; font-weight: 700; color: #0a6b3d; background: rgba(12,163,12,.10); border: 1px solid rgba(12,163,12,.28); padding: 2px 8px; border-radius: 999px">CC BY 4.0</span>
+            </div>
+          </div>
+
+          <div style="height: 1px; background: #e6e6e1"></div>
+
+          <div style="display: flex; flex-direction: column; gap: 3px">
+            <div style="display: flex; align-items: baseline; gap: 9px">
+              <span style="font-size: 15px; font-weight: 700; letter-spacing: -.01em">国土数値情報　行政区域データ</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 9px">
+              <span style="font-size: 12px; color: #8a8983">国土交通省</span>
+              <span style="font-size: 10px; font-weight: 700; color: #0a6b3d; background: rgba(12,163,12,.10); border: 1px solid rgba(12,163,12,.28); padding: 2px 8px; border-radius: 999px">CC BY 4.0</span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ② 結合 -->
+      <div style="padding: 0 30px; border-left: 1px solid #e6e6e1">
+        <p style="font-size: 11px; font-weight: 700; letter-spacing: .04em; color: #8a8983; margin: 0 0 20px">② 結合</p>
+
+        <div style="font-size: 26px; font-weight: 800; letter-spacing: -.03em; color: #1c5cab; font-variant-numeric: tabular-nums">muni_code</div>
+        <div style="font-size: 12px; color: #52514e; margin-top: 6px">全国地方公共団体コード 5桁</div>
+
+        <p style="font-size: 13px; color: #52514e; line-height: 1.8; margin: 20px 0 0">
+          4つのデータを、自治体名ではなく<strong style="color: #0b0b0b; font-weight: 700">コードで突き合わせています</strong>。表記ゆれを一度も踏みません。
+        </p>
+
+        <div style="display: flex; align-items: center; gap: 10px; margin-top: 18px; font-size: 13px; color: #8a8983; font-variant-numeric: tabular-nums">
+          <span style="font-weight: 700; color: #0b0b0b">13102</span>
+          <svg width="14" height="8" viewBox="0 0 14 8" fill="none" aria-hidden="true">
+            <path d="M0 4 H12 M8.5 1 L12 4 L8.5 7" stroke="#8a8983" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <span style="color: #0b0b0b">中央区</span>
+        </div>
+      </div>
+
+      <!-- ③ 計算 -->
+      <div style="padding: 0 26px; border-left: 1px solid #e6e6e1">
+        <p style="font-size: 11px; font-weight: 700; letter-spacing: .04em; color: #8a8983; margin: 0 0 20px">③ 計算</p>
+
+        <div style="font-size: 22px; font-weight: 800; letter-spacing: -.03em; line-height: 1.4">需要 − 受け皿</div>
+
+        <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 20px">
+          <div>
+            <div style="font-size: 12px; color: #8a8983">需要</div>
+            <div style="font-size: 13px; color: #52514e; line-height: 1.7">児童数 × 登録率</div>
+          </div>
+          <div>
+            <div style="font-size: 12px; color: #8a8983">受け皿</div>
+            <div style="font-size: 13px; color: #52514e; line-height: 1.7">学童クラブの登録実績</div>
+          </div>
+        </div>
+
+        <p style="font-size: 12px; color: #8a8983; line-height: 1.7; margin: 20px 0 0">
+          登録率は年 <strong style="color: #1c5cab; font-weight: 700; font-variant-numeric: tabular-nums">+0.84pt</strong><br>48自治体の実測値。定数を置いていません
+        </p>
+      </div>
+
+      <!-- ④ 出力 -->
+      <div style="padding-left: 26px; border-left: 1px solid #e6e6e1">
+        <p style="font-size: 11px; font-weight: 700; letter-spacing: .04em; color: #8a8983; margin: 0 0 20px">④ 出力</p>
+
+        <div style="font-size: 22px; font-weight: 800; letter-spacing: -.03em; line-height: 1.4; font-variant-numeric: tabular-nums">49自治体<br>× 12年度</div>
+
+        <div style="display: flex; align-items: baseline; gap: 7px; margin-top: 18px">
+          <span style="font-size: 34px; font-weight: 800; letter-spacing: -.04em; color: #1c5cab; font-variant-numeric: tabular-nums">588</span>
+          <span style="font-size: 13px; font-weight: 700; color: #52514e">セル</span>
+        </div>
+
+        <p style="font-size: 12px; color: #8a8983; line-height: 1.7; margin: 16px 0 0">
+          1セル＝ある自治体の、ある年度の不足率
+        </p>
+      </div>
+
+    </div>
+
+    <!-- ── 限界の明示。データ活用賞ではここを隠さないことが効く ── -->
+    <div style="margin-top: 56px; padding-top: 26px; border-top: 1px solid #e6e6e1; display: flex; align-items: flex-start; gap: 14px">
+      <div style="width: 34px; height: 19px; border-radius: 3px; background-color: #5598e7; background-image: repeating-linear-gradient(45deg, rgba(255,255,255,.40) 0 1px, transparent 1px 5px); box-shadow: -2px 0 0 0 #1c5cab; flex-shrink: 0; margin-top: 2px"></div>
+      <p style="font-size: 13px; color: #52514e; line-height: 1.8; max-width: 62em; margin: 0">
+        都の教育人口等推計は<strong style="color: #0b0b0b; font-weight: 700">3世代ぶんしかありません</strong>。<strong style="color: #0b0b0b; font-weight: 700">2031年度以降</strong>は、その3世代を接続した推定です。画面ではこのハッチで区別していて、地図・折れ線・ヒートマップのすべてに同じ印が付きます。
+      </p>
+    </div>
+
+  </div>
+</div>
+</x-dc>
+</body>
+</html>
