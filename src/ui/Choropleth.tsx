@@ -39,11 +39,12 @@ function ChoroplethBase({
   decorative,
   scale = 1,
 }: Props) {
-  const showLabels = !decorative && scale >= 1.8;
+  const showLabels = !decorative && scale >= 1.55;
   return (
     <svg
       ref={svgRef}
       viewBox={viewBox ?? `0 0 ${MAP_W} ${MAP_H}`}
+      preserveAspectRatio="xMidYMid meet"
       role={decorative ? 'presentation' : 'img'}
       aria-hidden={decorative || undefined}
       aria-label={decorative ? undefined : '東京都49自治体の、学童に入れない割合の地図'}
@@ -86,7 +87,7 @@ function ChoroplethBase({
               fontWeight: 700,
               fill: 'var(--ink-1)',
               paintOrder: 'stroke',
-              stroke: 'var(--bg-1)',
+              stroke: 'var(--bg-0)',
               strokeWidth: 3 / scale,
               strokeLinejoin: 'round',
             }}

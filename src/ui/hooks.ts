@@ -128,7 +128,14 @@ export function useZoomPan() {
     viewBox: `${vb.x} ${vb.y} ${vb.w} ${vb.h}`,
     /** 拡大率。1 = 全体。ラベルの出し分けと線幅の補正に使う */
     scale: MAP_W / vb.w,
-    handlers: { onPointerDown, onPointerMove, onPointerUp, onDoubleClick: reset },
+    handlers: {
+      onPointerDown,
+      onPointerMove,
+      onPointerUp,
+      // タッチで touch-action:pan-y に持っていかれると pointerup が来ない。取りこぼすと掴みっぱなしになる
+      onPointerCancel: onPointerUp,
+      onDoubleClick: reset,
+    },
     reset,
     zoomTo,
   };
@@ -141,4 +148,46 @@ export function useTheme(): ['light' | 'dark', () => void] {
     document.documentElement.dataset.theme = theme;
   }, [theme]);
   return [theme, () => setTheme((t) => (t === 'light' ? 'dark' : 'light'))];
+}
+
+/**
+ * いま画面のどのパネルを見ているか。解説列のナビに現在地を出すため。
+ *
+ * ⚠️ 固定ヘッダのぶんだけ上端を削っている（rootMargin の上側）。
+ *    削らないと、ヘッダに隠れているパネルが「現在地」になる。
+ */
+export function useScrollSpy(ids: string[], topOffset = 110): string | null {
+  const [active, setActive] = useState<string | null>(ids[0] ?? null);
+  const key = ids.join(',');
+
+  useEffect(() => {
+    if (typeof IntersectionObserver === 'undefined') return;
+    const tops = new Map<string, number>();
+    const io = new IntersectionObserver(
+      (es) => {
+        for (const e of es) {
+          if (e.isIntersecting) tops.set(e.target.id, e.boundingClientRect.top);
+          else tops.delete(e.target.id);
+        }
+        // 🔴 「いちばん上にあるもの」ではなく「上端を通り過ぎた最後のもの」。
+        //    前者だと、次のパネルを読んでいるあいだ手前のパネルが現在地のまま残る。
+        let best: string | null = null;
+        let bestTop = -Infinity;
+        for (const [id, top] of tops) if (top <= topOffset && top > bestTop) [best, bestTop] = [id, top];
+        if (best === null) {
+          let minTop = Infinity;
+          for (const [id, top] of tops) if (top < minTop) [best, minTop] = [id, top];
+        }
+        if (best) setActive(best);
+      },
+      { rootMargin: `-${topOffset}px 0px -45% 0px`, threshold: 0 },
+    );
+    for (const id of key.split(',')) {
+      const el = document.getElementById(id);
+      if (el) io.observe(el);
+    }
+    return () => io.disconnect();
+  }, [key, topOffset]);
+
+  return active;
 }

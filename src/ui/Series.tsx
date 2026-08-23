@@ -22,15 +22,27 @@ import type { CoreResult } from '../core';
 import type { Theme } from './palette';
 import { fmt } from './data';
 
-const W = 900;
-const H = 300;
-const PAD = { t: 24, r: 96, b: 34, l: 64 };
+/**
+ * 論理サイズの既定。解説列（実測 498px）に置くと 900 では文字が 7px 相当まで縮むので、
+ * 呼び出し側から実寸に近い値を渡せるようにしてある。viewBox の値を変えるだけ。
+ */
+const DEFAULT_W = 560;
+const DEFAULT_H = 300;
+const PAD = { t: 22, r: 78, b: 32, l: 58 };
 
 /** 検証済み。ライト surface #fcfcfb / ダーク surface #101011 で全チェック PASS */
 const SERIES_COLORS: Record<Theme, { demand: string; supply: string }> = {
   light: { demand: '#1c5cab', supply: '#b06a00' },
   dark: { demand: '#4a90e2', supply: '#c98410' },
 };
+
+/** v 以上でいちばん近い「1・2・2.5・5 × 10^n」。目盛りが半端な数にならないように */
+function niceCeil(v: number): number {
+  if (!(v > 0)) return 1;
+  const mag = 10 ** Math.floor(Math.log10(v));
+  for (const f of [1, 2, 2.5, 5, 10]) if (v <= f * mag) return f * mag;
+  return 10 * mag;
+}
 
 interface Row {
   year: number;
@@ -41,7 +53,20 @@ interface Row {
   bridged: boolean;
 }
 
-export function Series({ core, muni, theme }: { core: CoreResult; muni: string; theme: Theme }) {
+export function Series({
+  core,
+  muni,
+  theme,
+  w = DEFAULT_W,
+  h: H = DEFAULT_H,
+}: {
+  core: CoreResult;
+  muni: string;
+  theme: Theme;
+  w?: number;
+  h?: number;
+}) {
+  const W = w;
   const [hover, setHover] = useState<number | null>(null);
   const color = SERIES_COLORS[theme];
 
@@ -62,7 +87,8 @@ export function Series({ core, muni, theme }: { core: CoreResult; muni: string; 
 
   if (rows.length < 2) return null;
 
-  const yMax = Math.max(...rows.map((r) => Math.max(r.hi, r.demand, r.supply))) * 1.08;
+  // 目盛りはきりのいい数にする。3,004 / 1,502 のような軸は、値そのものの信用を削る
+  const yMax = niceCeil(Math.max(...rows.map((r) => Math.max(r.hi, r.demand, r.supply))) * 1.04);
   const x = (i: number) => PAD.l + (i / (rows.length - 1)) * (W - PAD.l - PAD.r);
   const y = (v: number) => PAD.t + (1 - v / yMax) * (H - PAD.t - PAD.b);
 
@@ -79,7 +105,7 @@ export function Series({ core, muni, theme }: { core: CoreResult; muni: string; 
 
   const bridgeIdx = rows.findIndex((r) => r.bridged);
   const last = rows[rows.length - 1];
-  const h = hover === null ? null : rows[hover];
+  const hv = hover === null ? null : rows[hover];
 
   return (
     <div className="series">
@@ -152,19 +178,19 @@ export function Series({ core, muni, theme }: { core: CoreResult; muni: string; 
             onMouseEnter={() => setHover(i)}
           />
         ))}
-        {h && (
+        {hv && (
           <g pointerEvents="none">
             <line className="cross" x1={x(hover!)} x2={x(hover!)} y1={PAD.t} y2={H - PAD.b} />
-            <circle cx={x(hover!)} cy={y(h.demand)} r={4.5} fill={color.demand} stroke="var(--bg-1)" strokeWidth={2} />
-            <circle cx={x(hover!)} cy={y(h.supply)} r={4.5} fill={color.supply} stroke="var(--bg-1)" strokeWidth={2} />
+            <circle cx={x(hover!)} cy={y(hv.demand)} r={4.5} fill={color.demand} stroke="var(--bg-1)" strokeWidth={2} />
+            <circle cx={x(hover!)} cy={y(hv.supply)} r={4.5} fill={color.supply} stroke="var(--bg-1)" strokeWidth={2} />
           </g>
         )}
       </svg>
       <p className="series-tip">
-        {h ? (
+        {hv ? (
           <>
-            <b>{h.year}年度</b>　必要な数 <b>{fmt(h.demand)}</b>人（{fmt(h.lo)}〜{fmt(h.hi)}）／ 入れる数{' '}
-            <b>{fmt(h.supply)}</b>人{h.bridged && '　※推定区間'}
+            <b>{hv.year}年度</b>　必要な数 <b>{fmt(hv.demand)}</b>人（{fmt(hv.lo)}〜{fmt(hv.hi)}）／ 入れる数{' '}
+            <b>{fmt(hv.supply)}</b>人{hv.bridged && '　※推定区間'}
           </>
         ) : (
           '折れ線にカーソルを合わせると、その年度の数値が出ます'
