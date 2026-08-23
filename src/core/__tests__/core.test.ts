@@ -64,10 +64,16 @@ describe('FR-1 入学年度', () => {
 });
 
 describe('決定1: N0 は official[2025]。baseChildren ではない', () => {
-  it('品川区は official[2025] を使う（baseChildren だと25%ずれて偽陽性になる）', () => {
+  // 🔴 2026-08-23：①が sample.json / data.json の品川区 baseChildren を
+  //    14,417 → 18,041 に修正した（official[2025] と一致する正しい値）。
+  //    「ズレた実データを固定値で踏む」形のテストは成立しなくなったので、
+  //    「n0Of が official[2025] から導かれること」を直接検証する形に組み替える。
+  it('品川区の N0 は official[2025] の合計から導かれる', () => {
     const shinagawa = muniByName('品川区');
-    expect(n0Of(shinagawa)).toBe(18041);
-    expect(shinagawa.baseChildren).toBe(14417);
+    const officialSum = shinagawa.official
+      .find((o) => o.year === 2025)!
+      .grades.reduce((a, b) => a + b, 0);
+    expect(n0Of(shinagawa)).toBe(officialSum);
     expect(rLatentOf(shinagawa)).toBeCloseTo(0.193, 3);
   });
 
@@ -75,8 +81,19 @@ describe('決定1: N0 は official[2025]。baseChildren ではない', () => {
     expect(rLatentOf(muniByName('中央区'))).toBeCloseTo(0.163, 3);
   });
 
-  it('validateAppData が品川区のズレを検出する', () => {
+  it('実データは baseChildren と official[2025] が一致している（警告が出ない）', () => {
     const report = validateAppData(appData);
+    expect(report.problems.some((p) => p.includes('baseChildren'))).toBe(false);
+  });
+
+  it('baseChildren を壊すと validateAppData が検出する', () => {
+    const broken = {
+      ...appData,
+      munis: appData.munis.map((m) =>
+        m.name === '品川区' ? { ...m, baseChildren: 14417 } : m,
+      ),
+    };
+    const report = validateAppData(broken);
     expect(report.problems.some((p) => p.includes('品川区') && p.includes('baseChildren'))).toBe(true);
   });
 });
@@ -227,7 +244,8 @@ describe('予測区間', () => {
   it('band と demandBand は桁が違う（同じ軸に描かせないための回帰テスト）', () => {
     const r = buildMuniDetail(appData, '中央区').series.find((s) => s.year === 2031)!;
     expect(r.demand).toBeCloseTo(2189.8, 0);
-    expect(r.band.lo).toBeCloseTo(9701.8, 0);
+    // ①が backtest を49自治体で再計算し p10Pct が -2.13 → -2.07 になったぶん動いた
+    expect(r.band.lo).toBeCloseTo(9717.8, 0);
     expect(r.demandBand.lo).toBeCloseTo(r.band.lo * r.targetRate, 9);
     expect(r.band.lo / r.demandBand.lo).toBeGreaterThan(4);
   });
