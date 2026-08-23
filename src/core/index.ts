@@ -14,7 +14,9 @@ export { entryYearOf, birthYearOf, entryAgeOffset, isEarlyBirth, entryYearRange,
 export { measureTrend, latentFloorFromData, type TrendMeasurement } from './trend';
 export { validateAppData, type ValidationReport } from './validate';
 export { PRESET_SCENARIOS, normalizeScenario, type PresetScenario, type NormalizedScenario } from './scenario';
-export { DEFAULT_TREND, RATE_CAP, BASE_YEAR, HOUSING_COEFF, BRIDGED_WIDEN } from './constants';
+export { DEFAULT_TREND, RATE_CAP, BASE_YEAR, HOUSING_COEFF, BRIDGED_WIDEN, MIN_TREND_POINTS } from './constants';
+// 自治体別トレンドの材料（③が「この区の傾きは実測か、都平均か」を出すため。docs/19 依頼3）
+export { childrenSeriesOf, rLatentSeriesOf, type ChildrenSource, type RatePoint } from './scope';
 
 // ── 再計算を避けたいとき（ヒートマップと詳細を同時に描くなど） ──
 export { computeAll, type CoreResult, type CoreCell } from './compute';

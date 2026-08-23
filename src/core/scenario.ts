@@ -12,7 +12,17 @@ import { clamp, sum } from './stats';
 
 /** クランプ済み・既定値埋め済みのシナリオ。core の内部はこれしか見ない */
 export interface NormalizedScenario {
+  /** 一律で当てる傾き。`trendExplicit` が false ならこれは既定値（表示用）で、実際は自治体別 */
   trend: number;
+  /**
+   * 🔴 呼び出し側が `trend` を明示したか。
+   *
+   *   true  … その値を49自治体すべてに一律で当てる（③のスライダー・感度分析）
+   *   false … 自治体別に実測した傾きを使う（`measureTrend().byMuni`）
+   *
+   * 「未指定＝既定値で埋める」だけにすると、自治体別トレンドを使う経路が無くなる。
+   */
+  trendExplicit: boolean;
   /** 未指定なら 0（＝下限なし・現行式） */
   latentFloor: number;
   /** 年度 → 供給倍率。未指定の年度は 1.0 */
@@ -26,7 +36,8 @@ export interface NormalizedScenario {
  */
 export function normalizeScenario(scenario: Scenario | undefined): NormalizedScenario {
   const s = scenario ?? {};
-  const trend = clamp(Number.isFinite(s.trend) ? (s.trend as number) : DEFAULT_TREND, TREND_MIN, TREND_MAX);
+  const trendExplicit = Number.isFinite(s.trend);
+  const trend = clamp(trendExplicit ? (s.trend as number) : DEFAULT_TREND, TREND_MIN, TREND_MAX);
   const latentFloor = Number.isFinite(s.latentFloor) ? clamp(s.latentFloor as number, 0, 1) : 0;
 
   const supplyGrowth = new Map<number, number>();
@@ -44,7 +55,7 @@ export function normalizeScenario(scenario: Scenario | undefined): NormalizedSce
     housing.push({ ...h, units: clamp(Number(h.units) || 0, UNITS_MIN, UNITS_MAX) });
   }
 
-  return { trend, latentFloor, supplyGrowth, housing };
+  return { trend, trendExplicit, latentFloor, supplyGrowth, housing };
 }
 
 /** その年度の供給倍率。未指定なら 1.0（＝クラブが増えない）。累積ではない */

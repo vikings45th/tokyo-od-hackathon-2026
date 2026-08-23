@@ -99,3 +99,45 @@ export const HOUSING_COEFF: Record<HousingType, readonly number[]> = {
 
 /** 低学年＝1〜3年（設計書 §4-2。分母は常に全学年にすること） */
 export const LOWER_GRADE_COUNT = 3;
+
+// ── 自治体別トレンド（docs/19 依頼3） ────────────────────────────
+
+/**
+ * 自治体別に傾きを引くのに必要な最小の時点数。
+ *
+ * 🔴 3点。2点だと自由度が 0 で標準誤差が出せず、「ノイズと区別できない傾き」を
+ *    そのまま13年外挿することになる（実測：2点だと江戸川区が年 +585%、13年で ×7.4e10）。
+ *    これ未満の自治体は都の実測値へフォールバックし `fallback: true` を立てる。
+ */
+export const MIN_TREND_POINTS = 3;
+
+/**
+ * 傾きの信頼区間の片側確率。既存の予測区間（backtest の p10/p90）と考え方を揃える。
+ * `slope ± t(1−TREND_CI_Q, df) × se`
+ */
+export const TREND_CI_Q = 0.1;
+
+/**
+ * `Muni.childrenSeries` も `AppData.schools` も無いときに使う、分母の2点の基準日。
+ * `children2023` と `official[2025]` の合計に対応する（設計書 §4-1）。
+ */
+export const CHILDREN_FALLBACK_DATES = ['2023-05-01', '2025-05-01'] as const;
+
+/**
+ * `AppData.schools[].actual` の各要素が何年度の実績か。型のコメントどおり [令和5, 令和6, 令和7]。
+ * 学童の基準日（5月1日）に合わせて日付にしてある。
+ */
+export const SCHOOL_VINTAGE_DATES = ['2023-05-01', '2024-05-01', '2025-05-01'] as const;
+
+/**
+ * `schools[]` から導いた児童数を分母に採用してよい許容ズレ（基準年 `official[2025]` 比）。
+ *
+ * 🔴 **`schools` は名簿なので、欠けていても形は正しいまま通ってしまう。**
+ *    実測：`data/sample.json` は6自治体に対して18校しか持たない抜粋なので、
+ *    そのまま分母にすると顕在需要率が 0.24 や 2.38 になり、傾きが100倍化する。
+ *    基準年で `official[2025]` と桁が合うことを確認してから採用する。
+ *
+ * 50%：実データで最大にずれるのは品川区の −20%（義務教育学校の前期課程を
+ * `official` が含み `schools`（小学校のみ）が含まないため）。それは通し、抜粋は弾く幅。
+ */
+export const CHILDREN_SERIES_TOLERANCE = 0.5;

@@ -15,7 +15,9 @@ import {
 } from '../index';
 import { gakudoIndicator } from '../indicators';
 import { n0Of, rLatentOf } from '../scope';
-import { median } from '../stats';
+import { BASE_YEAR, RATE_CAP } from '../constants';
+import { childrenSeriesOf, rLatentSeriesOf } from '../scope';
+import { linearRegression, median, tQuantile90 } from '../stats';
 import { buildForecastContext, projectMuni } from '../forecast';
 
 const muniByName = (name: string) => appData.munis.find((m) => m.name === name)!;
@@ -170,8 +172,12 @@ describe('決定2 latentFloor（潜在需要トグル）', () => {
       .cells.filter((c) => c.year === 2031 && !c.excluded && c.score !== null)
       .map((c) => c.score!);
 
-  it('未指定なら現行式：2031年の中央値は3点未満で、0点が3件出る', () => {
-    const v = at2031();
+  // 🔴 trend を明示する。未指定だと自治体別トレンド（実測へのフォールバック）が効いて
+  //    latentFloor 以外の要因でも数字が動き、このテストが何を見ているのか分からなくなる
+  const base = { trend: DEFAULT_TREND };
+
+  it('latentFloor 未指定なら現行式：2031年の中央値は3点未満で、0点が3件出る', () => {
+    const v = at2031(base);
     expect(median(v)).toBeLessThan(3);
     expect(v.filter((s) => s < 0.5).length).toBe(3);
   });
@@ -179,9 +185,9 @@ describe('決定2 latentFloor（潜在需要トグル）', () => {
   it('P75 を下限に置くと判別力が出る：中央値が上がり0点が減る', () => {
     const floor = latentFloorFromData(appData);
     expect(floor).toBeCloseTo(0.2587, 3);
-    const v = at2031({ latentFloor: floor });
+    const v = at2031({ ...base, latentFloor: floor });
     // 中央値 2.9 → 8.2、0点 3件 → 2件（sample.json 6自治体での実測）
-    expect(median(v)).toBeGreaterThan(median(at2031()) * 2);
+    expect(median(v)).toBeGreaterThan(median(at2031(base)) * 2);
     expect(v.filter((s) => s < 0.5).length).toBe(2);
   });
 });
@@ -197,7 +203,7 @@ describe('設計書 §0-2 の感度：trend がモデルを支配する', () => 
   it('trend を上げるとスコアは単調に上がる', () => {
     const s = (t: number) => scoreAt(buildHeatmap(appData, 2031, { trend: t }).cells, '杉並区', 2031)!;
     expect(s(0.02)).toBeGreaterThan(s(0.015));
-    expect(s(0.015)).toBeGreaterThan(s(0.0084));
+    expect(s(0.015)).toBeGreaterThan(s(DEFAULT_TREND));
   });
 });
 
@@ -212,7 +218,7 @@ describe('score の null と 0 は別物', () => {
   });
 
   it('待機0でもリスク0とは限らない（世田谷区は年度が進むと0を超える）', () => {
-    const cells = buildHeatmap(appData, 2031).cells;
+    const cells = buildHeatmap(appData, 2031, { trend: DEFAULT_TREND }).cells;
     expect(scoreAt(cells, '世田谷区', 2031)).toBe(0);
     expect(scoreAt(cells, '世田谷区', 2038)!).toBeGreaterThan(0);
   });
@@ -233,12 +239,30 @@ describe('予測区間', () => {
   });
 
   // docs/17 依頼B：band は児童数の帯。需要の帯は demandBand
-  it('demandBand は band × targetRate で、demand を挟む', () => {
+  it('demandBand は demand を挟む', () => {
     for (const r of detail.series) {
-      expect(r.demandBand.lo).toBeCloseTo(r.band.lo * r.targetRate, 9);
-      expect(r.demandBand.hi).toBeCloseTo(r.band.hi * r.targetRate, 9);
-      expect(r.demand).toBeGreaterThanOrEqual(r.demandBand.lo);
+      expect(r.demandBand.lo).toBeLessThanOrEqual(r.demand);
       expect(r.demand).toBeLessThanOrEqual(r.demandBand.hi);
+    }
+  });
+
+  // 🔴 docs/19 依頼3-4 の受け入れ条件。ここが緩むと「予測区間」と呼べなくなる
+  it('demandBand には児童数の誤差だけでなくトレンドの不確かさが入っている', () => {
+    for (const r of detail.series) {
+      if (r.year === BASE_YEAR) continue; // 基準年は傾きの寄与が 0
+      const childrenOnly = { lo: r.band.lo * r.targetRate, hi: r.band.hi * r.targetRate };
+      // 旧実装（児童数の誤差だけ）より明確に広いこと
+      expect(r.demandBand.lo).toBeLessThan(childrenOnly.lo);
+      expect(r.demandBand.hi).toBeGreaterThan(childrenOnly.hi);
+      expect(r.demandBand.hi - r.demandBand.lo).toBeGreaterThan((childrenOnly.hi - childrenOnly.lo) * 1.2);
+    }
+  });
+
+  it('gapBand は gap を挟み、供給ぶんだけ需要の帯を下にずらしたもの', () => {
+    for (const r of detail.series) {
+      expect(r.gapBand.lo).toBeLessThanOrEqual(r.gap + 1e-9);
+      expect(r.gap).toBeLessThanOrEqual(r.gapBand.hi + 1e-9);
+      expect(r.gapBand.hi).toBeCloseTo(Math.max(r.demandBand.hi - r.supply, 0), 9);
     }
   });
 
@@ -341,5 +365,171 @@ describe('validateAppData', () => {
   it('sources が空なら FR-8 違反として弾く', () => {
     const r = validateAppData({ ...appData, sources: [] });
     expect(r.problems.some((p) => p.includes('FR-8'))).toBe(true);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────
+// docs/19 依頼3：自治体別トレンドと、予測区間へのトレンド不確実性の反映
+// ─────────────────────────────────────────────────────────────
+
+describe('依頼3-2 分母の系列を混ぜない', () => {
+  it('学校名簿が抜粋なら分母に採用しない（sample.json は6自治体18校）', () => {
+    // 18校ぶんの児童数を分母にすると顕在需要率が 0.24〜2.38 になり、傾きが100倍化する
+    for (const m of appData.munis) {
+      expect(childrenSeriesOf(appData, m).source).toBe('official');
+    }
+  });
+
+  it('childrenSeries があれば最優先で使う', () => {
+    const m = {
+      ...muniByName('杉並区'),
+      childrenSeries: [
+        { asOf: '2023-05-01', count: 26000 },
+        { asOf: '2024-05-01', count: 26200 },
+        { asOf: '2025-05-01', count: 26400 },
+      ],
+    };
+    const cs = childrenSeriesOf(appData, m);
+    expect(cs.source).toBe('childrenSeries');
+    expect(cs.points).toHaveLength(3);
+  });
+
+  it('分子と分母が両方揃う時点だけ使う（2025-10 は分母が無いので落ちる）', () => {
+    const m = muniByName('杉並区');
+    expect(m.gakudo.map((g) => g.asOf)).toContain('2025-10-01');
+    const { points } = rLatentSeriesOf(appData, m);
+    expect(points.map((p) => p.asOf)).toEqual(['2023-05-01', '2025-05-01']);
+  });
+});
+
+describe('依頼3-3 フォールバック', () => {
+  const t = measureTrend(appData);
+
+  it('既存の返り値は壊していない（③の画面 S5 が使っている）', () => {
+    expect(t.trend).toBeGreaterThan(0);
+    expect(t.n).toBeGreaterThan(0);
+    expect(t.excluded).toContain('江戸川区');
+    expect(Number.isFinite(t.rateFrom)).toBe(true);
+    expect(Number.isFinite(t.rateTo)).toBe(true);
+  });
+
+  it('いまのデータは2時点しかないので、全自治体がフォールバックする', () => {
+    expect(t.points).toBe(2);
+    expect(t.measuredCount).toBe(0);
+    for (const [, v] of t.byMuni) {
+      expect(v.nPoints).toBeLessThan(3);
+      expect(v.fallback).toBe(true);
+      expect(v.used).toBe(t.trend);
+    }
+  });
+
+  it('江戸川区（series-break）はフォールバックし、傾きのプールにも入らない', () => {
+    const edo = t.byMuni.get('江戸川区')!;
+    expect(edo.fallback).toBe(true);
+    expect(edo.used).toBe(t.trend);
+    // 江戸川区の傾きは断絶由来で桁が違う。プールに混ざっていれば p90 が引きずられる
+    expect(edo.slope!).toBeGreaterThan(t.slopeP90 * 3);
+    expect(t.slopeP90).toBeLessThan(0.05);
+  });
+
+  it('フォールバックの信頼区間は自治体間のばらつきで、都の実測値を必ず含む', () => {
+    for (const [, v] of t.byMuni) {
+      expect(v.ciLo).toBeLessThanOrEqual(v.used);
+      expect(v.used).toBeLessThanOrEqual(v.ciHi);
+      expect(v.ciHi).toBeGreaterThan(v.ciLo);
+    }
+  });
+
+  it('3点あれば自前で引ける（①が学童 2024-05 を1点足したときの挙動）', () => {
+    const withMid = {
+      ...appData,
+      munis: appData.munis.map((m) => ({
+        ...m,
+        childrenSeries: [
+          { asOf: '2023-05-01', count: m.children2023 },
+          { asOf: '2024-05-01', count: Math.round((m.children2023 + n0Of(m)) / 2) },
+          { asOf: '2025-05-01', count: n0Of(m) },
+        ],
+        gakudo: [
+          ...m.gakudo,
+          {
+            asOf: '2024-05-01',
+            clubs: m.gakudo[0]!.clubs,
+            registered: Math.round((m.gakudo[0]!.registered + m.gakudo[1]!.registered) / 2),
+            waiting: Math.round((m.gakudo[0]!.waiting + m.gakudo[1]!.waiting) / 2),
+          },
+        ].sort((a, b) => a.asOf.localeCompare(b.asOf)),
+      })),
+    };
+    const t3 = measureTrend(withMid);
+    expect(t3.points).toBe(3);
+    expect(t3.measuredCount).toBeGreaterThan(0);
+    const suginami = t3.byMuni.get('杉並区')!;
+    expect(suginami.fallback).toBe(false);
+    expect(suginami.nPoints).toBe(3);
+    expect(suginami.se).not.toBeNull();
+    // 江戸川区は3点あっても series-break なのでフォールバックのまま
+    expect(t3.byMuni.get('江戸川区')!.fallback).toBe(true);
+  });
+});
+
+describe('依頼3-4 予測区間にトレンドの不確かさが入っている', () => {
+  it('r_target は全自治体・全年度で [0, RATE_CAP] に収まる', () => {
+    for (const scenario of [undefined, { trend: 0.05 }, { trend: -0.05 }, { latentFloor: 0.4 }]) {
+      const core = computeAll(appData, scenario);
+      for (const c of core.cells) {
+        if (c.detail.rTarget === undefined) continue;
+        expect(c.detail.rTarget).toBeGreaterThanOrEqual(0);
+        expect(c.detail.rTarget).toBeLessThanOrEqual(RATE_CAP);
+      }
+    }
+  });
+
+  it('trend を明示すると帯の中心はその値に移り、幅は実測のまま残る', () => {
+    const wide = buildMuniDetail(appData, '杉並区', { trend: 0.03 }).series.find((s) => s.year === 2031)!;
+    const base = buildMuniDetail(appData, '杉並区', undefined).series.find((s) => s.year === 2031)!;
+    expect(wide.demand).toBeGreaterThan(base.demand);
+    expect(wide.demandBand.lo).toBeLessThan(wide.demand);
+    expect(wide.demandBand.hi).toBeGreaterThan(wide.demand);
+  });
+
+  it('MuniDetail.trend で「都平均を当てている」ことが分かる', () => {
+    const d = buildMuniDetail(appData, '中央区');
+    expect(d.trend.fallback).toBe(true);
+    expect(d.trend.denominator).toBe('official');
+    expect(d.trend.nPoints).toBe(2);
+  });
+});
+
+describe('依頼3-6 縮約推定', () => {
+  it('標準誤差が大きいほど都平均に寄る', () => {
+    // 分散分解が効く形の合成データ：傾きはばらつくが、1件だけ極端に不確か
+    const points = (slope: number, noise: number) => [
+      { x: 2021, y: 0.2 },
+      { x: 2022, y: 0.2 + slope + noise },
+      { x: 2023, y: 0.2 + slope * 2 - noise },
+      { x: 2024, y: 0.2 + slope * 3 + noise },
+      { x: 2025, y: 0.2 + slope * 4 - noise },
+    ];
+    const clean = linearRegression(points(0.02, 0))!;
+    const noisy = linearRegression(points(0.02, 0.05))!;
+    expect(clean.se).toBeCloseTo(0, 6);
+    expect(noisy.se!).toBeGreaterThan(clean.se!);
+    // 自由度が同じでも、残差が大きいほど信頼区間が広がる（豊島区の非線形はここに出る）
+    expect(tQuantile90(clean.df) * noisy.se!).toBeGreaterThan(tQuantile90(clean.df) * clean.se!);
+  });
+
+  it('2点では標準誤差が出ない（自由度0）', () => {
+    const r = linearRegression([{ x: 2023, y: 0.24 }, { x: 2025, y: 0.26 }])!;
+    expect(r.slope).toBeCloseTo(0.01, 9);
+    expect(r.se).toBeNull();
+    expect(r.df).toBe(0);
+  });
+});
+
+describe('依頼8 定数と実測値が食い違っていないか', () => {
+  it('DEFAULT_TREND は実データの実測値と一致する（0.01pt 以内）', async () => {
+    const real = (await import('../../../data/app/data.json')).default as unknown as Parameters<typeof measureTrend>[0];
+    expect(Math.abs(measureTrend(real).trend - DEFAULT_TREND)).toBeLessThan(0.0001);
   });
 });
