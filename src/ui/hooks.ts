@@ -9,6 +9,9 @@ import { MAP_H, MAP_W, type Box } from './geo';
 
 const FULL: Box = { x: 0, y: 0, w: MAP_W, h: MAP_H };
 
+/** これ以上動いたらドラッグ。これ未満はクリック（自治体の選択）として扱う */
+const DRAG_SLOP = 4;
+
 /**
  * 地図のズーム／パン。`viewBox` を state に持って書き換えるだけ。
  *
@@ -18,7 +21,7 @@ const FULL: Box = { x: 0, y: 0, w: MAP_W, h: MAP_H };
 export function useZoomPan() {
   const [vb, setVb] = useState<Box>(FULL);
   const svg = useRef<SVGSVGElement | null>(null);
-  const drag = useRef<{ x: number; y: number; vx: number; vy: number } | null>(null);
+  const drag = useRef<{ x: number; y: number; vx: number; vy: number; captured: boolean } | null>(null);
 
   const clamp = (b: Box): Box => {
     const w = Math.min(Math.max(b.w, MAP_W / 9), MAP_W);
@@ -51,13 +54,25 @@ export function useZoomPan() {
     return () => el.removeEventListener('wheel', onWheel);
   }, []);
 
+  /**
+   * 🔴 pointerdown では **setPointerCapture してはいけない。**
+   *    捕獲すると続く pointerup の target が <path> ではなく <svg> になり、
+   *    click は pointerdown と pointerup の共通祖先（＝<svg>）に飛ぶ。
+   *    その結果、自治体 <path> の onClick が一度も呼ばれず「地図を押しても選べない」になる。
+   *    → 動き始めてから捕獲する。クリックとドラッグが両立する。
+   */
   const onPointerDown = (e: React.PointerEvent<SVGSVGElement>) => {
-    drag.current = { x: e.clientX, y: e.clientY, vx: vb.x, vy: vb.y };
-    e.currentTarget.setPointerCapture(e.pointerId);
+    drag.current = { x: e.clientX, y: e.clientY, vx: vb.x, vy: vb.y, captured: false };
   };
   const onPointerMove = (e: React.PointerEvent<SVGSVGElement>) => {
     const d = drag.current;
     if (!d) return;
+    if (!d.captured) {
+      // まだクリックかもしれない。4px 動くまでは捕獲もパンもしない
+      if (Math.hypot(e.clientX - d.x, e.clientY - d.y) < DRAG_SLOP) return;
+      e.currentTarget.setPointerCapture(e.pointerId);
+      d.captured = true;
+    }
     const r = e.currentTarget.getBoundingClientRect();
     setVb((v) =>
       clamp({ ...v, x: d.vx - ((e.clientX - d.x) / r.width) * v.w, y: d.vy - ((e.clientY - d.y) / r.height) * v.h }),

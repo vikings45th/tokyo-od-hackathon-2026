@@ -1,28 +1,26 @@
 /**
  * 画面本体。
  *
- * ── 2026-08-23 リデザイン（第2版）──
- * 第1版は「固定ヘッダ ＋ 左に凍結した計器列 ＋ 右に流れる解説列」の2列にした。
- * パワポっぽさ（100vhの反復・同型セクション・触れる面が5番目）は消えたが、
- * **ダッシュボードになった**。このページは毎日開く道具ではなく、
- * 「知っている側が、知らない側に見せる」1回きりの画面（docs/20-service-canvas.md）。
+ * ── 2026-08-23 リデザイン（第3版）──
+ * 骨格は第2版の「1本の縦スクロール」を踏襲。モード転換の合図は幅：
  *
- * → 凍結ペインを捨てて 1本の縦スクロールに戻し、LP → 道具 の順に手渡す。
- *   モード転換の合図は「幅」で作る：
+ *     .read  660px 中央寄せ  #lede → #why → #ask                       … 読む
+ *     ──────────────────────────────────────────────────  ← ここで幅が変わる
+ *     .wide 1360px          #tool → #choose → #muni → #heat → #scenario … 使う
+ *     ──────────────────────────────────────────────────  ← ここで幅が戻る
+ *     .read                 #evidence → #sources                        … 確かめる
  *
- *     .read  660px 中央寄せ  #lede → #why → #ask     … 読む
- *     ────────────────────────────────────────────  ← ここで幅が変わる
- *     .wide 1360px          #tool → #muni → #heat → #scenario … 使う
- *     ────────────────────────────────────────────  ← ここで幅が戻る
- *     .read                 #evidence → #sources     … 確かめる
+ * 第3版で変えたこと：
+ *   - 地図を全幅にして一番の見せ場にした。選択中の明細（.selbar）は地図の**真下に横1行**。
+ *     クリックの結果が視線の先で変わる
+ *   - **#choose を新設。**「学童に入れないのはどこか」だけでなく「どこに住めばいいか」を答える
+ *   - 順位は「いま厳しい順」と「全員入れる期間が長い順」の2本立て（別の問いなので混ぜない）
  *
- *   蝶番は #ask の生まれ年入力。docs/20 の「常に読者の固有の状況に接地させる」を
- *   そのまま構造にしている。
- *
- * 🔴 #tool の2列は **sticky にしない**。ふつうに流れる1つの図版として置く。
- *    「左が止まって右が動く」は二度とやらない。
- * 🔴 年度は viewYear 1本。地図・順位・結果・ヒートマップの強調列は必ずこれで描く。
+ * 🔴 年度は viewYear 1本。地図・順位・明細・ヒートマップの強調列は必ずこれで描く。
  *    どれか1つが別の年度を見ていると、そこから先の数字が全部信用されなくなる。
+ * 🔴 単軸（学童）しか持っていないので「総合おすすめ度」は名乗らない。
+ *    通勤時間・住宅価格は docs/13-requirements.md §4 で意識的に捨てた軸。
+ *    #choose には必ず「学童の受け皿だけを見た順です」と断りを出す。
  *
  * 箱（枠線＋影のカード）は使わない。区切りは余白と1pxのヘアラインだけ。
  */
@@ -55,6 +53,61 @@ function rankMunis(core: CoreResult, year: number): string[] {
       if (sb === null) return -1;
       return sb - sa || a.localeCompare(b, 'ja');
     });
+}
+
+/**
+ * 「どこに住めばいいか」を答えるための指標。
+ *
+ * 🔴 素直に「入れない割合が低い順」を出すと、下位に 0% が大量に並んで順位にならない
+ *    （上位は 41 / 13 / 12 … だが、下に行くほど 0 が連続する分布）。
+ *    そこで「**入れない子が1人でも出る最初の年度**」で並べる。
+ *    % ではなく人数を閾値にしているのは、恣意的な %閾値を持ち込まずに済むから。
+ *    同着（最後まで0人）は「最終年度のスコア昇順 → 最終年度の余裕人数 降順」で割る。
+ *
+ * この指標はこのサービスの論点そのもの（意思決定と痛みが最大6年ずれる）に直結している。
+ */
+interface Hold {
+  muni: string;
+  /**
+   * 最初に不足が出る年度。最後まで出なければ null。
+   * ⚠️ 「その年から先ずっと不足する」ではない。需要は年で上下するので、
+   *    いったん不足してから戻る自治体がある。文言も「最初に不足するのは」にしてある。
+   */
+  breakYear: number | null;
+  /** 最終年度のスコア。同着を割る第2キー */
+  lastScore: number;
+  /** 最終年度の余裕人数（受け入れ − 必要）。同着を割る第3キー */
+  margin: number;
+  /**
+   * いま見ている年度に入れない子の人数。表示用。
+   * 🔴 % ではなく人数を出す。数人の不足は四捨五入で 0% になるので、
+   *    「2027年度から入れない子が出る」の隣に「0%」が並んで矛盾して見える。
+   */
+  gap: number | null;
+}
+
+function holdOf(core: CoreResult, muni: string, viewYear: number): Hold {
+  const rows = (core.byMuni.get(muni) ?? []).filter((r) => !r.excluded);
+  // 🔴 四捨五入しない。0.6人を「1人」に丸めると、モデルの分解能を超えた主張になる
+  const bad = rows.find((r) => (r.detail.gap ?? 0) >= 1);
+  const last = rows[rows.length - 1];
+  return {
+    muni,
+    breakYear: bad?.year ?? null,
+    lastScore: last?.score ?? Number.POSITIVE_INFINITY,
+    margin: (last?.detail.supply ?? 0) - (last?.detail.demand ?? 0),
+    gap: cellAt(core, muni, viewYear)?.detail.gap ?? null,
+  };
+}
+
+/** 良い順（長く持ちこたえる順）。null（最後まで不足なし）が先 */
+function compareHold(a: Hold, b: Hold): number {
+  const ka = a.breakYear ?? Number.POSITIVE_INFINITY;
+  const kb = b.breakYear ?? Number.POSITIVE_INFINITY;
+  if (ka !== kb) return kb - ka;
+  if (a.lastScore !== b.lastScore) return a.lastScore - b.lastScore;
+  if (a.margin !== b.margin) return b.margin - a.margin;
+  return a.muni.localeCompare(b.muni, 'ja');
 }
 
 /**
@@ -126,6 +179,49 @@ function BirthPicker({
   );
 }
 
+/** #choose の1行。左（近くの候補）と右（順位）で使い回す */
+function ChooseRow({
+  hold,
+  lastYear,
+  rank,
+  current,
+  onSelect,
+}: {
+  hold: Hold;
+  lastYear: number;
+  rank?: number;
+  current?: boolean;
+  onSelect: (m: string) => void;
+}) {
+  return (
+    <div
+      className={`crow${current ? ' cur' : ''}`}
+      role="button"
+      tabIndex={0}
+      onClick={() => onSelect(hold.muni)}
+      onKeyDown={(e) => e.key === 'Enter' && onSelect(hold.muni)}
+    >
+      {rank !== undefined && <span className="ci tab">{rank}</span>}
+      <span className="cn">
+        {hold.muni}
+        {current && <em>いま見ている</em>}
+      </span>
+      <span className={`ch${hold.breakYear === null ? ' ok' : ''}`}>
+        {hold.breakYear === null ? (
+          <>
+            {lastYear}年度まで、どの年も全員入れる
+          </>
+        ) : (
+          <>
+            最初に不足するのは <b className="tab">{hold.breakYear}</b>年度
+          </>
+        )}
+      </span>
+      <span className="cv tab">{hold.gap === null ? '—' : `${fmt(hold.gap)}人`}</span>
+    </div>
+  );
+}
+
 export default function App() {
   const [theme, toggleTheme] = useTheme();
   const palette = PALETTES[theme];
@@ -136,6 +232,8 @@ export default function App() {
   const [presetId, setPresetId] = useState('baseline');
   const [selected, setSelected] = useState<string | null>(null);
   const [expanded, setExpanded] = useState(false);
+  /** #choose 右の並べ替え。「長く持つ順」と「いま厳しい順」は別の問いなので混ぜない */
+  const [rankMode, setRankMode] = useState<'hold' | 'risk'>('hold');
 
   /** 年スクラバで上書きした年度。null なら「あなたの子が小1になる年度」 */
   const [yearOverride, setYearOverride] = useState<number | null>(null);
@@ -169,6 +267,24 @@ export default function App() {
   const selGakudo = selMuni?.gakudo.find((g) => g.asOf === GAKUDO_NOW);
   const note = sel ? core.notes.get(sel) : undefined;
 
+  /** 全自治体を「長く持ちこたえる順」に並べたもの。#choose の右で使う */
+  const holdRank = useMemo(
+    () => core.munis.map((m) => holdOf(core, m.name, viewYear)).sort(compareHold),
+    [core, viewYear],
+  );
+  /** 最後まで1人も不足しない自治体の数。#choose の見出しに出す */
+  const safeCount = useMemo(() => holdRank.filter((h) => h.breakYear === null).length, [holdRank]);
+
+  /** 選択自治体と、地理的に隣接する自治体を良い順に。#choose の左で使う */
+  const nearby = useMemo(() => {
+    if (!sel) return [];
+    return (GEO.byName.get(sel)?.neighbors ?? [])
+      .filter((n) => core.byMuni.has(n))
+      .map((n) => holdOf(core, n, viewYear))
+      .sort(compareHold);
+  }, [sel, core, viewYear]);
+  const selHold = useMemo(() => (sel ? holdOf(core, sel, viewYear) : null), [sel, core, viewYear]);
+
   /**
    * #why の3点目「待機児童数では順位が付かない」の根拠。
    * 🔴 実データから数える。docs/20 に書いてある数字を写経しない（データが更新されたら嘘になる）。
@@ -179,16 +295,6 @@ export default function App() {
       .filter((g): g is NonNullable<typeof g> => !!g);
     return { zero: rows.filter((g) => g.waiting === 0).length, total: rows.length };
   }, []);
-
-  // 「打てる手」＝ 地理的に隣接していて、スコアが低い自治体
-  const alternatives = useMemo(() => {
-    if (!sel) return [];
-    return (GEO.byName.get(sel)?.neighbors ?? [])
-      .map((n) => ({ muni: n, score: cellAt(core, n, viewYear)?.score ?? null }))
-      .filter((x): x is { muni: string; score: number } => x.score !== null)
-      .sort((a, b) => a.score - b.score)
-      .slice(0, 3);
-  }, [sel, core, viewYear]);
 
   /**
    * 出典をライセンスごとに束ねる。出現順は data.json の順を保つ。
@@ -209,7 +315,10 @@ export default function App() {
   const offMeasured = Math.abs(core.scenario.trend - TREND.trend) > 0.003;
 
   const zp = useZoomPan();
-  const heatRows = expanded ? order : [...new Set([...order.slice(0, 10), ...(sel ? [sel] : [])])];
+  // 🔴 選択自治体が上位10件の外なら、末尾ではなく先頭に出す。
+  //    地図で選んだ結果が表のどこに出たのか探させない
+  const top10 = order.slice(0, 10);
+  const heatRows = expanded ? order : sel && !top10.includes(sel) ? [sel, ...top10] : top10;
   const bridged = viewYear >= core.bridgeFrom;
   const pct = (y: number) => ((y - firstYear) / (lastYear - firstYear)) * 100;
 
@@ -368,181 +477,214 @@ export default function App() {
 
         {/* ══════════ 使う（ここから幅が変わる）══════════ */}
 
+        {/* ── #tool ── 地図が一番の見せ場。全幅で置く ── */}
         <section id="tool">
           <div className="wide">
             <div className="secthd">
               <h2>
-                <span className="tab">{focusYear}</span>年度、学童に入れないのはどこか。
+                <span className="tab">{viewYear}</span>年度、東京49自治体。
               </h2>
-              <span className="pmeta">
-                色 ＝ 学童を必要とする子のうち、受け皿に入れない割合／自治体をクリックで選択
+              {/* ズームは地図に重ねない。拡大・移動すると地形と重なって読めなくなる */}
+              <div className="zoombar">
+                <button
+                  className="zb"
+                  disabled={!sel}
+                  onClick={() =>
+                    sel && zp.zoomTo(bboxOf(GEO, [sel, ...(GEO.byName.get(sel)?.neighbors ?? [])]))
+                  }
+                >
+                  {sel ? `${sel}の周辺へ` : '周辺へ'}
+                </button>
+                <button className="zb" onClick={() => zp.zoomTo(bboxOf(GEO, GEO.kuNames))}>
+                  23区へ
+                </button>
+                <button className="zb" onClick={zp.reset}>
+                  全体
+                </button>
+              </div>
+            </div>
+
+            <div className="mapstage">
+              <Choropleth
+                geo={GEO}
+                palette={palette}
+                cellOf={(m) => cellAt(core, m, viewYear)}
+                selected={sel}
+                onSelect={setSelected}
+                viewBox={zp.viewBox}
+                svgRef={zp.ref}
+                handlers={zp.handlers}
+                scale={zp.scale}
+              />
+            </div>
+
+            <div className="legend">
+              <span>入れない割合</span>
+              <span>低</span>
+              <span className="bar-ramp">
+                {palette.ramp.map((c, i) => (
+                  <Tip key={c} body={`${BIN_LABELS[i]}　需要のうち受け皿に入れない割合`}>
+                    <i style={{ background: c, display: 'inline-block', width: 30, height: 8 }} />
+                  </Tip>
+                ))}
+              </span>
+              <span>高</span>
+              <span className="hint">自治体をクリックで選択・スクロールで拡大・ドラッグで移動・ダブルクリックで戻る</span>
+            </div>
+            {missing.length > 0 && (
+              <p className="stub">
+                ⚠️ グレーの{missing.length}自治体はデータがありません（0点ではありません）
+              </p>
+            )}
+
+            {/* 🔴 選択中の明細は地図の真下に横1行。クリックの結果が視線の先で変わる */}
+            <div className="selbar">
+              <span className="who">
+                {sel ?? '—'}　{viewYear}年度
+              </span>
+              <span className="big tab">
+                {fmt(selCell?.detail.gap)}
+                <small>人が、入れない</small>
+              </span>
+              <span className="facts">
+                <span>
+                  必要な数 <b className="tab">{fmt(selCell?.detail.demand)}</b> 人
+                </span>
+                <span>
+                  いまの受け入れ <b className="tab">{fmt(selCell?.detail.supply)}</b> 人
+                </span>
+                <span>
+                  いまの待機児童 <b className="tab">{fmt(selGakudo?.waiting)}</b> 人
+                </span>
+                <span>
+                  学童クラブ <b className="tab">{fmt(selGakudo?.clubs)}</b> か所
+                </span>
               </span>
             </div>
 
-            <div className="toolgrid">
-              {/* 左：地図。sticky にしない */}
-              <div>
-                <div className="mapfig">
-                  <div className="zoombar">
-                    <button
-                      className="zb"
-                      disabled={!sel}
-                      onClick={() =>
-                        sel && zp.zoomTo(bboxOf(GEO, [sel, ...(GEO.byName.get(sel)?.neighbors ?? [])]))
-                      }
-                    >
-                      {sel ? `${sel}の周辺へ` : '周辺へ'}
-                    </button>
-                    <button className="zb" onClick={() => zp.zoomTo(bboxOf(GEO, GEO.kuNames))}>
-                      23区へ
-                    </button>
-                    <button className="zb" onClick={zp.reset}>
-                      全体
-                    </button>
-                  </div>
-                  <Choropleth
-                    geo={GEO}
-                    palette={palette}
-                    cellOf={(m) => cellAt(core, m, viewYear)}
-                    selected={sel}
-                    onSelect={setSelected}
-                    viewBox={zp.viewBox}
-                    svgRef={zp.ref}
-                    handlers={zp.handlers}
-                    scale={zp.scale}
-                  />
-                </div>
-                <div className="legend">
-                  <span>入れない割合</span>
-                  <span>低</span>
-                  <span className="bar-ramp">
-                    {palette.ramp.map((c, i) => (
-                      <Tip key={c} body={`${BIN_LABELS[i]}　需要のうち受け皿に入れない割合`}>
-                        <i style={{ background: c, display: 'inline-block', width: 30, height: 8 }} />
-                      </Tip>
-                    ))}
-                  </span>
-                  <span>高</span>
-                  <span className="hint">スクロールで拡大・ドラッグで移動・ダブルクリックで戻る</span>
-                </div>
-                {missing.length > 0 && (
-                  <p className="stub">
-                    ⚠️ グレーの{missing.length}自治体はデータがありません（0点ではありません）
-                  </p>
+            {/* 年スクラバ。2026→2038 の物語は、スクロール演出ではなくこの1本に集約した */}
+            <div className="scrub">
+              <div className="scrub-hd">
+                <span className="scrub-y tab">{viewYear}年度</span>
+                {bridged ? (
+                  <Tip
+                    body={`区市町村別の都の公式推計は${core.bridgeFrom - 1}年度まで。それ以降は全都の公式推計の伸びで接続した推定です。誤差も実測していません。`}
+                  >
+                    <span className="scrub-tag est">推定</span>
+                  </Tip>
+                ) : (
+                  <Tip body="区市町村別の都の公式推計そのものです。">
+                    <span className="scrub-tag">都の公式推計</span>
+                  </Tip>
                 )}
+                <span className="scrub-why">
+                  {lastYear}年度まで動かすと、受け皿がいまのままだった場合の広がりが見えます
+                </span>
+                {viewYear !== focusYear && (
+                  <button className="zb scrub-back" onClick={() => setYearOverride(null)}>
+                    {focusYear}年度（小1）に戻す
+                  </button>
+                )}
+              </div>
+              <input
+                className="rng scrub-rng"
+                type="range"
+                min={firstYear}
+                max={lastYear}
+                step={1}
+                value={viewYear}
+                aria-label="地図に出す年度"
+                onChange={(e) => setYearOverride(Number(e.target.value))}
+              />
+              <div className="scrub-ax">
+                <span className="lo">{firstYear}</span>
+                <span className="you" style={{ left: `${pct(focusYear)}%` }}>
+                  ▾ 小1（{focusYear}）
+                </span>
+                <span style={{ left: `${pct(core.bridgeFrom)}%` }}>{core.bridgeFrom}〜 推定</span>
+                <span className="hi">{lastYear}</span>
+              </div>
+            </div>
 
-                {/* 年スクラバ。2026→2038 の物語は、スクロール演出ではなくこの1本に集約した */}
-                <div className="scrub">
-                  <div className="scrub-hd">
-                    <span className="scrub-y tab">{viewYear}年度</span>
-                    {bridged ? (
-                      <Tip
-                        body={`区市町村別の都の公式推計は${core.bridgeFrom - 1}年度まで。それ以降は全都の公式推計の伸びで接続した推定です。誤差も実測していません。`}
-                      >
-                        <span className="scrub-tag est">推定</span>
-                      </Tip>
-                    ) : (
-                      <Tip body="区市町村別の都の公式推計そのものです。">
-                        <span className="scrub-tag">都の公式推計</span>
-                      </Tip>
-                    )}
-                    {viewYear !== focusYear && (
-                      <button className="zb scrub-back" onClick={() => setYearOverride(null)}>
-                        {focusYear}年度（小1）に戻す
-                      </button>
-                    )}
-                  </div>
-                  <input
-                    className="rng scrub-rng"
-                    type="range"
-                    min={firstYear}
-                    max={lastYear}
-                    step={1}
-                    value={viewYear}
-                    aria-label="地図に出す年度"
-                    onChange={(e) => setYearOverride(Number(e.target.value))}
-                  />
-                  <div className="scrub-ax">
-                    <span className="lo">{firstYear}</span>
-                    <span className="you" style={{ left: `${pct(focusYear)}%` }}>
-                      ▾ 小1（{focusYear}）
-                    </span>
-                    <span style={{ left: `${pct(core.bridgeFrom)}%` }}>{core.bridgeFrom}〜 推定</span>
-                    <span className="hi">{lastYear}</span>
-                  </div>
-                  <p className="scrub-why">
-                    {lastYear}年度まで動かすと、受け皿がいまのままだった場合の広がりが見えます。
-                    前提そのものは下の「条件を変えて計算する」で変えられます。
-                  </p>
+            {/* 🔴 出典は地図のすぐ下に必ず1行出す（FR-8）。完全な一覧は #sources */}
+            <p className="minisrc">
+              出典：東京都オープンデータカタログサイト「教育人口等推計」「公立学校統計調査報告書【東京都公立学校一覧】」
+              「学童クラブ事業の区市町村別実施状況」（東京都教育庁・東京都福祉局／CC BY 4.0）、
+              地図の区市町村境界は「国土数値情報（行政区域データ）」（国土交通省）を加工して作成。{' '}
+              <a href="#sources">出典とライセンスの一覧 →</a>
+            </p>
+          </div>
+        </section>
+
+        {/* ── #choose ── 「入れないのはどこか」だけでなく「どこに住めばいいか」を答える ── */}
+        <section id="choose">
+          <div className="wide">
+            <div className="secthd">
+              <h2>じゃあ、どこに住めばいいか。</h2>
+              <span className="pmeta">
+                {firstYear}〜{lastYear}年度の<b>どの年も</b>不足しないのは{' '}
+                <b className="tab">{safeCount}</b> 自治体
+              </span>
+            </div>
+
+            <div className="choosegrid">
+              <div>
+                <div className="clabelrow">
+                  <p className="k clabel">{sel ?? '—'}の近くなら</p>
+                  <span className="pmeta">{viewYear}年度に入れない子</span>
                 </div>
-
-                {/* 🔴 出典は地図のすぐ下に必ず1行出す（FR-8）。完全な一覧は #sources */}
-                <p className="minisrc">
-                  出典：東京都オープンデータカタログサイト「教育人口等推計」「公立学校統計調査報告書【東京都公立学校一覧】」
-                  「学童クラブ事業の区市町村別実施状況」（東京都教育庁・東京都福祉局／CC BY 4.0）、
-                  地図の区市町村境界は「国土数値情報（行政区域データ）」（国土交通省）を加工して作成。{' '}
-                  <a href="#sources">出典とライセンスの一覧 →</a>
+                {selHold && (
+                  <ChooseRow hold={selHold} lastYear={lastYear} current onSelect={setSelected} />
+                )}
+                {nearby.length === 0 ? (
+                  <p className="advice">この自治体に隣接する自治体のデータがありません。</p>
+                ) : (
+                  nearby.map((h) => (
+                    <ChooseRow key={h.muni} hold={h} lastYear={lastYear} onSelect={setSelected} />
+                  ))
+                )}
+                <p className="cnote">
+                  隣接は地図の境界を共有しているかどうかで判定しています（行政区分ではありません）。
                 </p>
               </div>
 
-              {/* 右：選んだ自治体の数字と、順位 */}
               <div>
-                <div className="result">
-                  <p className="who">
-                    {sel ?? '—'}　{viewYear}年度
+                <div className="clabelrow">
+                  <p className="k clabel">
+                    {rankMode === 'hold' ? '全員入れる期間が長い順' : `いま厳しい順（${viewYear}年度）`}
                   </p>
-                  <div className="big tab">
-                    {fmt(selCell?.detail.gap)}
-                    <small>人が、入れない</small>
-                  </div>
-                  <div className="facts">
-                    <span>
-                      必要な数 <b className="tab">{fmt(selCell?.detail.demand)} 人</b>
-                    </span>
-                    <span>
-                      いまの受け入れ <b className="tab">{fmt(selCell?.detail.supply)} 人</b>
-                    </span>
-                    <span>
-                      いまの待機児童 <b className="tab">{fmt(selGakudo?.waiting)} 人</b>
-                    </span>
-                    <span>
-                      学童クラブ <b className="tab">{fmt(selGakudo?.clubs)} か所</b>
-                    </span>
-                  </div>
+                  {/* 🔴 「長く持つ」と「いま厳しい」は別の問い。逆順にせず、切り替えで出し分ける */}
+                  <span className="pmeta">{viewYear}年度に入れない子</span>
                 </div>
-
-                <p className="k ranktitle">入れない割合が高い順（{viewYear}年度）</p>
-                <div className="rank">
-                  {order.slice(0, 10).map((m, i) => {
-                    const c = cellAt(core, m, viewYear);
-                    const s = c?.score ?? null;
-                    return (
-                      <div
-                        className={`rr${m === sel ? ' on' : ''}`}
-                        key={m}
-                        onClick={() => setSelected(m)}
-                        role="button"
-                        tabIndex={0}
-                        onKeyDown={(e) => e.key === 'Enter' && setSelected(m)}
-                      >
-                        <span className="i tab">{i + 1}</span>
-                        <span className="nm">{m}</span>
-                        <span className="v tab">{s === null ? '—' : `${Math.round(s)}%`}</span>
-                        <span className="sp">
-                          <i
-                            style={{
-                              display: 'block',
-                              width: `${Math.max(2, ((s ?? 0) / 45) * 100)}%`,
-                              background: fillOf(s, palette),
-                            }}
-                          />
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
+                <p className="crankswitch">
+                  <button
+                    className="more-btn"
+                    onClick={() => setRankMode((m) => (m === 'hold' ? 'risk' : 'hold'))}
+                  >
+                    {rankMode === 'hold' ? 'いま厳しい順を見る' : '長く持つ順に戻す'}
+                  </button>
+                </p>
+                {(rankMode === 'hold'
+                  ? holdRank.slice(0, 10)
+                  : order.slice(0, 10).map((m) => holdOf(core, m, viewYear))
+                ).map((h, i) => (
+                  <ChooseRow
+                    key={h.muni}
+                    hold={h}
+                    lastYear={lastYear}
+                    rank={i + 1}
+                    current={h.muni === sel}
+                    onSelect={setSelected}
+                  />
+                ))}
               </div>
             </div>
+
+            {/* 🔴 単軸しか持っていない。総合おすすめを名乗らない（docs/13 §4） */}
+            <p className="cdisclaimer">
+              この順位は<b>学童の受け皿だけ</b>を見たものです。通勤時間・家賃・保育園の入りやすさは
+              含んでいません。住む場所を決める材料の1つとして使ってください。
+            </p>
           </div>
         </section>
 
@@ -574,28 +716,8 @@ export default function App() {
             {sel && <Series core={core} muni={sel} theme={theme} w={860} h={320} />}
 
             <p className="k" style={{ marginTop: 30, marginBottom: 4 }}>
-              打てる手は、まだある。
+              引っ越し先を変える以外に、打てる手。
             </p>
-            {/* 🔴 押せるもの（.act）と、読むだけの助言（.advice）を見た目で分ける。
-                同じ見た目で片方だけ押せるのが、体験として一番よくない */}
-            <div className="acts">
-              {alternatives.length === 0 ? (
-                <span className="advice">この自治体に隣接する自治体のデータがありません。</span>
-              ) : (
-                alternatives.map((a) => (
-                  <span
-                    className="act"
-                    key={a.muni}
-                    role="button"
-                    tabIndex={0}
-                    onClick={() => setSelected(a.muni)}
-                    onKeyDown={(e) => e.key === 'Enter' && setSelected(a.muni)}
-                  >
-                    隣の<b>{a.muni}</b>　{Math.round(a.score)}%
-                  </span>
-                ))
-              )}
-            </div>
             <ul className="advices">
               <li>住み替えの時期を、入学年度に合わせてずらす</li>
               <li>民間学童の費用を、最初から資金計画に入れる</li>
@@ -642,9 +764,7 @@ export default function App() {
                   行＝自治体、列＝入学年度、セルの数字＝入れない割合（%）。
                   自治体名を押すと、上の地図とグラフがその自治体に切り替わります。
                 </p>
-                <p>
-                  枠が付いている列が、いま地図が見ている{viewYear}年度です。
-                </p>
+                <p>枠が付いている列が、いま地図が見ている{viewYear}年度です。</p>
                 <p className="bridge-note">
                   <i />
                   <span>
