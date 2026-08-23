@@ -5,20 +5,17 @@
  *    Vite が JSON をバンドルに畳み込むので、実行時のネットワークも
  *    `publicDir` の設定も要りません（NFR-4：ビルドがネットに触れないこと）。
  *
- * ①の `data/app/data.json`（49自治体）が来たら、下の import を1行差し替えるだけです。
+ * 読んでいるのは①の `data/app/data.json`（49自治体・出典7件）です。
+ * `data/sample.json`（6自治体）は②③が先に書くための実測ベースのダミーで、
+ * **画面からは参照しません。** core のテストは `__tests__/fixtures.ts` を使います。
  */
-import sample from '../../data/sample.json';
+import appData from '../../data/app/data.json';
 import topo from '../../data/geo/tokyo-49.topo.json';
 import type { AppData, Scenario } from '../types';
 import { computeAll, measureTrend, type CoreResult } from '../core';
 import { buildGeo, type GeoIndex } from './geo';
 
-// ⬇⬇ ①の実データが来たらここを差し替える ⬇⬇
-// import appData from '../../data/app/data.json';
-const appData = sample as unknown as AppData;
-// ⬆⬆ ここまで ⬆⬆
-
-export const DATA: AppData = appData;
+export const DATA: AppData = appData as unknown as AppData;
 export const GEO: GeoIndex = buildGeo(topo);
 
 /** 実測トレンド。画面に「既定値の根拠」を出すため（要件 NFR-5） */
@@ -31,7 +28,8 @@ export function compute(scenario?: Scenario): CoreResult {
 
 /**
  * 地図に描く自治体のうち、データが1件も無いもの。
- * ①の data.json が来るまでは sample.json の6自治体以外が全部これになる。
+ * `data/app/data.json` は地図と同じ49自治体を持つので、通常は空になる。
+ * 空でなくなったら①のパイプラインと `tokyo-49.topo.json` がずれている合図。
  */
 export function missingMunis(core: CoreResult): string[] {
   const has = new Set(core.cells.map((c) => c.muni));
