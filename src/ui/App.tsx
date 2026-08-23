@@ -24,24 +24,42 @@
  *
  * 箱（枠線＋影のカード）は使わない。区切りは余白と1pxのヘアラインだけ。
  */
-import { useMemo, useState } from 'react';
-import { PRESET_SCENARIOS, entryYearOf, isEarlyBirth, type CoreCell, type CoreResult } from '../core';
-import type { Muni, Scenario, Source } from '../types';
-import { BIN_LABELS, PALETTES, binOf, fillOf, type Palette } from './palette';
-import { Choropleth } from './Choropleth';
-import { Series } from './Series';
-import { HeroVisual } from './HeroVisual';
-import { WhyIcon } from './WhyIcon';
-import { DATA, GEO, GEO_SOURCE, TREND, compute, fmt, missingMunis, pt } from './data';
-import { bboxOf } from './geo';
-import { useTheme, useZoomPan } from './hooks';
+import { useMemo, useState } from "react";
+import {
+  PRESET_SCENARIOS,
+  entryYearOf,
+  isEarlyBirth,
+  type CoreCell,
+  type CoreResult,
+} from "../core";
+import type { Muni, Scenario, Source } from "../types";
+import { BIN_LABELS, PALETTES, binOf, fillOf, type Palette } from "./palette";
+import { Choropleth } from "./Choropleth";
+import { Series } from "./Series";
+import { HeroVisual } from "./HeroVisual";
+import { WhyIcon } from "./WhyIcon";
+import {
+  DATA,
+  GEO,
+  GEO_SOURCE,
+  TREND,
+  compute,
+  fmt,
+  missingMunis,
+  pt,
+} from "./data";
+import { bboxOf } from "./geo";
+import { useTheme, useZoomPan } from "./hooks";
 
 /** 学童実績の基準日。②の GAKUDO_BASE_DATE と同じ日付を見る */
-const GAKUDO_NOW = '2025-05-01';
+const GAKUDO_NOW = "2025-05-01";
 
 /** 行のスコアを引く。無ければ undefined */
-const cellAt = (core: CoreResult, muni: string, year: number): CoreCell | undefined =>
-  core.byMuni.get(muni)?.find((r) => r.year === year);
+const cellAt = (
+  core: CoreResult,
+  muni: string,
+  year: number,
+): CoreCell | undefined => core.byMuni.get(muni)?.find((r) => r.year === year);
 
 /** 指定年度のスコア降順。null は末尾 */
 function rankMunis(core: CoreResult, year: number): string[] {
@@ -50,10 +68,10 @@ function rankMunis(core: CoreResult, year: number): string[] {
     .sort((a, b) => {
       const sa = cellAt(core, a, year)?.score ?? null;
       const sb = cellAt(core, b, year)?.score ?? null;
-      if (sa === null && sb === null) return a.localeCompare(b, 'ja');
+      if (sa === null && sb === null) return a.localeCompare(b, "ja");
       if (sa === null) return 1;
       if (sb === null) return -1;
-      return sb - sa || a.localeCompare(b, 'ja');
+      return sb - sa || a.localeCompare(b, "ja");
     });
 }
 
@@ -109,7 +127,7 @@ function compareHold(a: Hold, b: Hold): number {
   if (ka !== kb) return kb - ka;
   if (a.lastScore !== b.lastScore) return a.lastScore - b.lastScore;
   if (a.margin !== b.margin) return b.margin - a.margin;
-  return a.muni.localeCompare(b.muni, 'ja');
+  return a.muni.localeCompare(b.muni, "ja");
 }
 
 /**
@@ -118,12 +136,12 @@ function compareHold(a: Hold, b: Hold): number {
  * ①の note.text は区別できているので、要約側も待機児童の増減で出し分ける。
  */
 function shortageLine(muni: Muni | undefined): string {
-  const prev = muni?.gakudo.find((g) => g.asOf === '2023-05-01');
+  const prev = muni?.gakudo.find((g) => g.asOf === "2023-05-01");
   const cur = muni?.gakudo.find((g) => g.asOf === GAKUDO_NOW);
-  if (!prev || !cur) return '需要が無いのではなく、受け皿が足りていません。';
+  if (!prev || !cur) return "需要が無いのではなく、受け皿が足りていません。";
   return cur.waiting > prev.waiting
-    ? '受け皿の拡大が、需要の伸びに追いついていません。'
-    : '改善は進んでいますが、まだ全員は入れていません。';
+    ? "受け皿の拡大が、需要の伸びに追いついていません。"
+    : "改善は進んでいますが、まだ全員は入れていません。";
 }
 
 function Tip({ children, body }: { children: React.ReactNode; body: string }) {
@@ -197,29 +215,29 @@ function ChooseRow({
 }) {
   return (
     <div
-      className={`crow${current ? ' cur' : ''}`}
+      className={`crow${current ? " cur" : ""}`}
       role="button"
       tabIndex={0}
       onClick={() => onSelect(hold.muni)}
-      onKeyDown={(e) => e.key === 'Enter' && onSelect(hold.muni)}
+      onKeyDown={(e) => e.key === "Enter" && onSelect(hold.muni)}
     >
       {rank !== undefined && <span className="ci tab">{rank}</span>}
       <span className="cn">
         {hold.muni}
         {current && <em>いま見ている</em>}
       </span>
-      <span className={`ch${hold.breakYear === null ? ' ok' : ''}`}>
+      <span className={`ch${hold.breakYear === null ? " ok" : ""}`}>
         {hold.breakYear === null ? (
-          <>
-            {lastYear}年度まで、どの年も全員入れる
-          </>
+          <>{lastYear}年度まで、どの年も全員入れる</>
         ) : (
           <>
             最初に不足するのは <b className="tab">{hold.breakYear}</b>年度
           </>
         )}
       </span>
-      <span className="cv tab">{hold.gap === null ? '—' : `${fmt(hold.gap)}人`}</span>
+      <span className="cv tab">
+        {hold.gap === null ? "—" : `${fmt(hold.gap)}人`}
+      </span>
     </div>
   );
 }
@@ -231,21 +249,22 @@ export default function App() {
   const [birthYear, setBirthYear] = useState(2024);
   const [birthMonth, setBirthMonth] = useState(6);
   const [trend, setTrend] = useState<number>(TREND.trend);
-  const [presetId, setPresetId] = useState('baseline');
+  const [presetId, setPresetId] = useState("baseline");
   const [selected, setSelected] = useState<string | null>(null);
   const [expanded, setExpanded] = useState(false);
   /** #choose 右の並べ替え。「長く持つ順」と「いま厳しい順」は別の問いなので混ぜない */
-  const [rankMode, setRankMode] = useState<'hold' | 'risk'>('hold');
+  const [rankMode, setRankMode] = useState<"hold" | "risk">("hold");
 
-  /** 年スクラバで上書きした年度。null なら「あなたの子が小1になる年度」 */
+  /** 年スクラバで上書きした年度。null なら「あなたのお子さんが小1になる年度」 */
   const [yearOverride, setYearOverride] = useState<number | null>(null);
 
-  const preset = PRESET_SCENARIOS.find((p) => p.id === presetId) ?? PRESET_SCENARIOS[0];
+  const preset =
+    PRESET_SCENARIOS.find((p) => p.id === presetId) ?? PRESET_SCENARIOS[0];
 
   // シナリオ＝プリセット ＋ スライダーの trend。trend は常にユーザーの値が勝つ
   const scenario: Scenario = useMemo(() => {
     const base = preset.build({ data: DATA, muni: selected ?? undefined });
-    return presetId === 'trend15' ? base : { ...base, trend };
+    return presetId === "trend15" ? base : { ...base, trend };
   }, [preset, presetId, selected, trend]);
 
   const core = useMemo(() => compute(scenario), [scenario]);
@@ -261,7 +280,10 @@ export default function App() {
 
   const order = useMemo(() => rankMunis(core, viewYear), [core, viewYear]);
   /** 未選択のときの既定。🔴 viewYear ではなく focusYear で決める（年を動かすたび選択が飛ぶのを防ぐ） */
-  const defaultSel = useMemo(() => rankMunis(core, focusYear)[0] ?? null, [core, focusYear]);
+  const defaultSel = useMemo(
+    () => rankMunis(core, focusYear)[0] ?? null,
+    [core, focusYear],
+  );
   const sel = selected ?? defaultSel;
 
   const selCell = sel ? cellAt(core, sel, viewYear) : undefined;
@@ -271,11 +293,15 @@ export default function App() {
 
   /** 全自治体を「長く持ちこたえる順」に並べたもの。#choose の右で使う */
   const holdRank = useMemo(
-    () => core.munis.map((m) => holdOf(core, m.name, viewYear)).sort(compareHold),
+    () =>
+      core.munis.map((m) => holdOf(core, m.name, viewYear)).sort(compareHold),
     [core, viewYear],
   );
   /** 最後まで1人も不足しない自治体の数。#choose の見出しに出す */
-  const safeCount = useMemo(() => holdRank.filter((h) => h.breakYear === null).length, [holdRank]);
+  const safeCount = useMemo(
+    () => holdRank.filter((h) => h.breakYear === null).length,
+    [holdRank],
+  );
 
   /** 選択自治体と、地理的に隣接する自治体を良い順に。#choose の左で使う */
   const nearby = useMemo(() => {
@@ -285,7 +311,10 @@ export default function App() {
       .map((n) => holdOf(core, n, viewYear))
       .sort(compareHold);
   }, [sel, core, viewYear]);
-  const selHold = useMemo(() => (sel ? holdOf(core, sel, viewYear) : null), [sel, core, viewYear]);
+  const selHold = useMemo(
+    () => (sel ? holdOf(core, sel, viewYear) : null),
+    [sel, core, viewYear],
+  );
 
   /**
    * #why の3点目「待機児童数では順位が付かない」の根拠。
@@ -295,7 +324,10 @@ export default function App() {
     const rows = DATA.munis
       .map((m) => m.gakudo.find((g) => g.asOf === GAKUDO_NOW))
       .filter((g): g is NonNullable<typeof g> => !!g);
-    return { zero: rows.filter((g) => g.waiting === 0).length, total: rows.length };
+    return {
+      zero: rows.filter((g) => g.waiting === 0).length,
+      total: rows.length,
+    };
   }, []);
 
   /**
@@ -320,7 +352,11 @@ export default function App() {
   // 🔴 選択自治体が上位10件の外なら、末尾ではなく先頭に出す。
   //    地図で選んだ結果が表のどこに出たのか探させない
   const top10 = order.slice(0, 10);
-  const heatRows = expanded ? order : sel && !top10.includes(sel) ? [sel, ...top10] : top10;
+  const heatRows = expanded
+    ? order
+    : sel && !top10.includes(sel)
+      ? [sel, ...top10]
+      : top10;
   const bridged = viewYear >= core.bridgeFrom;
   const pct = (y: number) => ((y - firstYear) / (lastYear - firstYear)) * 100;
 
@@ -328,10 +364,9 @@ export default function App() {
     <>
       {/* ══ 固定ヘッダ。ペインではなくツールバー ══ */}
       <header className="bar">
-        <span className="brand">小1の壁マップ</span>
+        <span className="brand">どこ育Tokyo</span>
         <span className="sep" />
         <div className="ctl">
-          <span className="k">子の生まれ</span>
           <BirthPicker
             birthYear={birthYear}
             birthMonth={birthMonth}
@@ -339,11 +374,12 @@ export default function App() {
             onMonth={setBirthMonth}
             idPrefix="ヘッダ"
           />
-          <span className="k">→ 小1は</span>
+          <span className="k">生まれ</span>
+          <span className="k">→ 小1になるのは</span>
           <span className="eq tab">{rawFocus}年度</span>
           {isEarlyBirth(birthMonth) && (
             <Tip body="学校教育法では4月2日〜翌年4月1日生まれが同学年です。1〜3月生まれ（早生まれ）は入学年度が1年早くなります。">
-              <span className="k" style={{ color: 'var(--warn)' }}>
+              <span className="k" style={{ color: "var(--warn)" }}>
                 早生まれ
               </span>
             </Tip>
@@ -360,7 +396,7 @@ export default function App() {
             出典
           </a>
           <button className="theme-btn" onClick={toggleTheme}>
-            {theme === 'light' ? 'DARK' : 'LIGHT'}
+            {theme === "light" ? "DARK" : "LIGHT"}
           </button>
         </div>
       </header>
@@ -372,10 +408,8 @@ export default function App() {
         <section id="lede">
           <div className="hero-wrap">
             <div className="hero-copy">
-              {/* 図版は h1 の「上」。横に置くと読む幅が潰れて h1 が割れる（styles.css の #lede） */}
-              <HeroVisual />
               <h1>
-                保育園には、入れた。
+                保育園には入れた
                 <br />
                 <em>小1の壁は、どこにある？</em>
               </h1>
@@ -383,43 +417,45 @@ export default function App() {
                   読者が学童の意味を知っていること・家を買おうとしていることを前提にしていて、
                   初見だと唐突。学童とは何か → 何が起きるか → このページは何をするか、の順にする。 */}
               <p className="lede">
-                小学校に上がると、放課後の預け先は保育園から「<b>学童クラブ</b>」に変わります。
+                小学校に上がると、放課後の預け先は保育園から「<b>学童クラブ</b>
+                」に変わります。
                 定員に入れなかったとき、保育園のような次の受け皿がありません。
               </p>
               <p className="lede">
-                このページは、東京都の公式データから{' '}
+                このページは、東京都の公式データから{" "}
                 <b className="tab">
                   {core.munis.length}自治体 × {core.years.length}年度
-                </b>{' '}
-                の学童の過不足を予測して、あなたの子が小1になる年の地図にするものです。
+                </b>{" "}
+                の学童の過不足を予測して、あなたのお子さんが小1になる年の地図にするものです。
               </p>
               <div className="tl">
-              <div className="line" />
-              <div className="fill" />
-              <div className="pt" style={{ left: 0 }}>
-                <b />
+                <div className="line" />
+                <div className="fill" />
+                <div className="pt" style={{ left: 0 }}>
+                  <b />
+                </div>
+                <div className="yr" style={{ left: 0 }}>
+                  2026
+                </div>
+                <div className="cap" style={{ left: 0 }}>
+                  現在
+                </div>
+                <div className="mid">{Math.max(0, rawFocus - 2026)}年</div>
+                <div className="pt" style={{ left: "calc(100% - 15px)" }}>
+                  <b />
+                </div>
+                <div className="yr" style={{ right: 0 }}>
+                  {rawFocus}
+                </div>
+                <div className="cap" style={{ right: 0 }}>
+                  小1の年
+                </div>
               </div>
-              <div className="yr" style={{ left: 0 }}>
-                2026
-              </div>
-              <div className="cap" style={{ left: 0 }}>
-                いま。住む場所を決める
-              </div>
-              <div className="mid">{Math.max(0, rawFocus - 2026)}年</div>
-              <div className="pt" style={{ left: 'calc(100% - 15px)' }}>
-                <b />
-              </div>
-              <div className="yr" style={{ right: 0 }}>
-                {rawFocus}
-              </div>
-              <div className="cap" style={{ right: 0 }}>
-                小1。学童の抽選
-              </div>
-            </div>
               {outOfRange && (
                 <p className="outrange">
-                  {rawFocus}年度は、都の推計が届く範囲（{firstYear}〜{lastYear}年度）の外です。
-                  この先の地図と表は、端の{focusYear}年度を出します。
+                  {rawFocus}年度は、都の推計が届く範囲（{firstYear}〜{lastYear}
+                  年度）の外です。 この先の地図と表は、端の{focusYear}
+                  年度を出します。
                 </p>
               )}
             </div>
@@ -436,10 +472,12 @@ export default function App() {
                   <WhyIcon name="calendar" />
                 </div>
                 <p className="wn">
-                  不動産サイトも区役所も、答えるのは<b>「今年の」待機児童数</b>だけ。
+                  不動産サイトも区役所も、答えるのは<b>「今年の」待機児童数</b>
+                  だけ。
                 </p>
                 <p className="wt">
-                  あなたの子が小1になるのは{rawFocus}年度です。その年の見通しは、どこにも載っていません。
+                  あなたのお子さんが小1になるのは{rawFocus}
+                  年度です。その年の見通しは、どこにも載っていません。
                   入れなかったときは、民間学童の費用を負担するか、家庭のどちらかが働き方を変えるかになります。
                 </p>
               </article>
@@ -448,13 +486,14 @@ export default function App() {
                   <WhyIcon name="ranking" />
                 </div>
                 <p className="wn">
-                  待機児童数では、順位が付きません。{waitingStat.total}自治体のうち{' '}
+                  待機児童数では、順位が付きません。{waitingStat.total}
+                  自治体のうち{" "}
                   <b className="tab">{waitingStat.zero}が待機ゼロ</b>です。
                 </p>
                 <p className="wt">
                   しかも「申込む前に諦めた人」は、待機にも登録にも数えられません。
                   この課題の当事者そのものが、指標に現れないということです。
-                  （東京都福祉局・{GAKUDO_NOW.replace(/-/g, '/')}時点の実測）
+                  （東京都福祉局・{GAKUDO_NOW.replace(/-/g, "/")}時点の実測）
                 </p>
               </article>
               <article className="why-card">
@@ -462,11 +501,13 @@ export default function App() {
                   <WhyIcon name="data" />
                 </div>
                 <p className="wn">
-                  データは公開されています。ただ、<b>比べられる形になっていません。</b>
+                  データは公開されています。ただ、
+                  <b>比べられる形になっていません。</b>
                 </p>
                 <p className="wt">
                   CSVはヘッダが6行目から始まり、区部と市町村部が横に2ブロック並び、数値は
-                  <code>&quot;1,261 &quot;</code> のような文字列。購入を検討している人が扱える形ではありません。
+                  <code>&quot;1,261 &quot;</code>{" "}
+                  のような文字列。購入を検討している人が扱える形ではありません。
                 </p>
               </article>
             </div>
@@ -476,7 +517,7 @@ export default function App() {
         {/* ── #ask ── 蝶番。ここで「一般の話」が「あなたの話」になる ── */}
         <section id="ask">
           <div className="read">
-            <h2>あなたの子は、何年生まれですか。</h2>
+            <h2>あなたのお子さんは、何年生まれですか？</h2>
             <div className="askrow">
               <BirthPicker
                 birthYear={birthYear}
@@ -489,15 +530,12 @@ export default function App() {
               <span className="askeq tab">{rawFocus}年度</span>
               {isEarlyBirth(birthMonth) && (
                 <Tip body="学校教育法では4月2日〜翌年4月1日生まれが同学年です。1〜3月生まれ（早生まれ）は入学年度が1年早くなります。">
-                  <span className="k" style={{ color: 'var(--warn)' }}>
+                  <span className="k" style={{ color: "var(--warn)" }}>
                     早生まれ
                   </span>
                 </Tip>
               )}
             </div>
-            <a className="askgo" href="#tool">
-              {focusYear}年度の東京49自治体を見る ↓
-            </a>
           </div>
         </section>
 
@@ -508,7 +546,8 @@ export default function App() {
           <div className="wide">
             <div className="secthd">
               <h2>
-                <span className="tab">{viewYear}</span>年度、学童に入りやすいのはどこか。
+                <span className="tab">{viewYear}</span>
+                年度、学童に入りやすいのはどこか
               </h2>
               {/* ズームは地図に重ねない。拡大・移動すると地形と重なって読めなくなる */}
               <div className="zoombar">
@@ -516,12 +555,21 @@ export default function App() {
                   className="zb"
                   disabled={!sel}
                   onClick={() =>
-                    sel && zp.zoomTo(bboxOf(GEO, [sel, ...(GEO.byName.get(sel)?.neighbors ?? [])]))
+                    sel &&
+                    zp.zoomTo(
+                      bboxOf(GEO, [
+                        sel,
+                        ...(GEO.byName.get(sel)?.neighbors ?? []),
+                      ]),
+                    )
                   }
                 >
-                  {sel ? `${sel}の周辺へ` : '周辺へ'}
+                  {sel ? `${sel}の周辺へ` : "周辺へ"}
                 </button>
-                <button className="zb" onClick={() => zp.zoomTo(bboxOf(GEO, GEO.kuNames))}>
+                <button
+                  className="zb"
+                  onClick={() => zp.zoomTo(bboxOf(GEO, GEO.kuNames))}
+                >
                   23区へ
                 </button>
                 <button className="zb" onClick={zp.reset}>
@@ -547,10 +595,14 @@ export default function App() {
                   </Tip>
                 )}
                 <span className="scrub-why">
-                  {lastYear}年度まで動かすと、受け皿がいまのままだった場合の広がりが見えます
+                  {lastYear}
+                  年度まで動かすと、受け皿が現状のままだった場合の広がりが見えます
                 </span>
                 {viewYear !== focusYear && (
-                  <button className="zb scrub-back" onClick={() => setYearOverride(null)}>
+                  <button
+                    className="zb scrub-back"
+                    onClick={() => setYearOverride(null)}
+                  >
                     {focusYear}年度（小1）に戻す
                   </button>
                 )}
@@ -570,7 +622,13 @@ export default function App() {
                 {core.years.map((y) => (
                   <i
                     key={y}
-                    className={y === focusYear ? 'you' : y === core.bridgeFrom ? 'br' : ''}
+                    className={
+                      y === focusYear
+                        ? "you"
+                        : y === core.bridgeFrom
+                          ? "br"
+                          : ""
+                    }
                     style={{ left: `${pct(y)}%` }}
                   />
                 ))}
@@ -580,7 +638,9 @@ export default function App() {
                 <span className="you" style={{ left: `${pct(focusYear)}%` }}>
                   ▾ 小1（{focusYear}）
                 </span>
-                <span style={{ left: `${pct(core.bridgeFrom)}%` }}>{core.bridgeFrom}〜 推定</span>
+                <span style={{ left: `${pct(core.bridgeFrom)}%` }}>
+                  {core.bridgeFrom}〜 推定
+                </span>
                 <span className="hi">{lastYear}</span>
               </div>
             </div>
@@ -606,24 +666,37 @@ export default function App() {
               <span>入りやすい</span>
               <span className="bar-ramp">
                 {palette.ramp.map((c, i) => (
-                  <Tip key={c} body={`${BIN_LABELS[i]}　需要のうち受け皿に入れない割合`}>
-                    <i style={{ background: c, display: 'inline-block', width: 30, height: 8 }} />
+                  <Tip
+                    key={c}
+                    body={`${BIN_LABELS[i]}　需要のうち受け皿に入れない割合`}
+                  >
+                    <i
+                      style={{
+                        background: c,
+                        display: "inline-block",
+                        width: 30,
+                        height: 8,
+                      }}
+                    />
                   </Tip>
                 ))}
               </span>
               <span>入りにくい</span>
-              <span className="hint">自治体をクリックで選択・スクロールで拡大・ドラッグで移動・ダブルクリックで戻る</span>
+              <span className="hint">
+                自治体をクリックで選択・スクロールで拡大・ドラッグで移動・ダブルクリックで戻る
+              </span>
             </div>
             {missing.length > 0 && (
               <p className="stub">
-                ⚠️ グレーの{missing.length}自治体はデータがありません（0点ではありません）
+                ⚠️ グレーの{missing.length}
+                自治体はデータがありません（0点ではありません）
               </p>
             )}
 
             {/* 🔴 選択中の明細は地図の真下に横1行。クリックの結果が視線の先で変わる */}
             <div className="selbar">
               <span className="who">
-                {sel ?? '—'}　{viewYear}年度
+                {sel ?? "—"}　{viewYear}年度
               </span>
               <span className="big tab">
                 {fmt(selCell?.detail.gap)}
@@ -631,13 +704,16 @@ export default function App() {
               </span>
               <span className="facts">
                 <span>
-                  必要な数 <b className="tab">{fmt(selCell?.detail.demand)}</b> 人
+                  必要な数 <b className="tab">{fmt(selCell?.detail.demand)}</b>{" "}
+                  人
                 </span>
                 <span>
-                  いまの受け入れ <b className="tab">{fmt(selCell?.detail.supply)}</b> 人
+                  いまの受け入れ{" "}
+                  <b className="tab">{fmt(selCell?.detail.supply)}</b> 人
                 </span>
                 <span>
-                  いまの待機児童 <b className="tab">{fmt(selGakudo?.waiting)}</b> 人
+                  いまの待機児童{" "}
+                  <b className="tab">{fmt(selGakudo?.waiting)}</b> 人
                 </span>
                 <span>
                   学童クラブ <b className="tab">{fmt(selGakudo?.clubs)}</b> か所
@@ -648,8 +724,9 @@ export default function App() {
             {/* 🔴 出典は地図のすぐ下に必ず1行出す（FR-8）。完全な一覧は #sources */}
             <p className="minisrc">
               出典：東京都オープンデータカタログサイト「教育人口等推計」「公立学校統計調査報告書【東京都公立学校一覧】」
-              「学童クラブ事業の区市町村別実施状況」（東京都教育庁・東京都福祉局／CC BY 4.0）、
-              地図の区市町村境界は「国土数値情報（行政区域データ）」（国土交通省）を加工して作成。{' '}
+              「学童クラブ事業の区市町村別実施状況」（東京都教育庁・東京都福祉局／CC
+              BY 4.0）、
+              地図の区市町村境界は「国土数値情報（行政区域データ）」（国土交通省）を加工して作成。{" "}
               <a href="#sources">出典とライセンスの一覧 →</a>
             </p>
           </div>
@@ -659,9 +736,9 @@ export default function App() {
         <section id="choose">
           <div className="wide">
             <div className="secthd">
-              <h2>じゃあ、どこに住めばいいか。</h2>
+              <h2>じゃあ、どこに住めば良いか</h2>
               <span className="pmeta">
-                {firstYear}〜{lastYear}年度の<b>どの年も</b>不足しないのは{' '}
+                {firstYear}〜{lastYear}年度の<b>どの年も</b>不足しないのは{" "}
                 <b className="tab">{safeCount}</b> 自治体
               </span>
             </div>
@@ -669,17 +746,29 @@ export default function App() {
             <div className="choosegrid">
               <div>
                 <div className="clabelrow">
-                  <p className="k clabel">{sel ?? '—'}の近くなら</p>
+                  <p className="k clabel">{sel ?? "—"}の近くなら</p>
                   <span className="pmeta">{viewYear}年度に入れない子</span>
                 </div>
                 {selHold && (
-                  <ChooseRow hold={selHold} lastYear={lastYear} current onSelect={setSelected} />
+                  <ChooseRow
+                    hold={selHold}
+                    lastYear={lastYear}
+                    current
+                    onSelect={setSelected}
+                  />
                 )}
                 {nearby.length === 0 ? (
-                  <p className="advice">この自治体に隣接する自治体のデータがありません。</p>
+                  <p className="advice">
+                    この自治体に隣接する自治体のデータがありません。
+                  </p>
                 ) : (
                   nearby.map((h) => (
-                    <ChooseRow key={h.muni} hold={h} lastYear={lastYear} onSelect={setSelected} />
+                    <ChooseRow
+                      key={h.muni}
+                      hold={h}
+                      lastYear={lastYear}
+                      onSelect={setSelected}
+                    />
                   ))
                 )}
                 <p className="cnote">
@@ -690,7 +779,9 @@ export default function App() {
               <div>
                 <div className="clabelrow">
                   <p className="k clabel">
-                    {rankMode === 'hold' ? '全員入れる期間が長い順' : `いま厳しい順（${viewYear}年度）`}
+                    {rankMode === "hold"
+                      ? "全員入れる期間が長い順"
+                      : `いま厳しい順（${viewYear}年度）`}
                   </p>
                   {/* 🔴 「長く持つ」と「いま厳しい」は別の問い。逆順にせず、切り替えで出し分ける */}
                   <span className="pmeta">{viewYear}年度に入れない子</span>
@@ -698,12 +789,16 @@ export default function App() {
                 <p className="crankswitch">
                   <button
                     className="more-btn"
-                    onClick={() => setRankMode((m) => (m === 'hold' ? 'risk' : 'hold'))}
+                    onClick={() =>
+                      setRankMode((m) => (m === "hold" ? "risk" : "hold"))
+                    }
                   >
-                    {rankMode === 'hold' ? 'いま厳しい順を見る' : '長く持つ順に戻す'}
+                    {rankMode === "hold"
+                      ? "いま厳しい順を見る"
+                      : "長く持つ順に戻す"}
                   </button>
                 </p>
-                {(rankMode === 'hold'
+                {(rankMode === "hold"
                   ? holdRank.slice(0, 10)
                   : order.slice(0, 10).map((m) => holdOf(core, m, viewYear))
                 ).map((h, i) => (
@@ -721,7 +816,8 @@ export default function App() {
 
             {/* 🔴 単軸しか持っていない。総合おすすめを名乗らない（docs/13 §4） */}
             <p className="cdisclaimer">
-              この順位は<b>学童の受け皿だけ</b>を見たものです。通勤時間・家賃・保育園の入りやすさは含んでいません。
+              この順位は<b>学童の受け皿だけ</b>
+              を見たものです。通勤時間・家賃・保育園の入りやすさは含んでいません。
             </p>
           </div>
         </section>
@@ -730,7 +826,7 @@ export default function App() {
         <section id="muni">
           <div className="wide">
             <div className="secthd">
-              <h2>{sel ?? '—'}で、学童が要る子と入れる子はどう動くか。</h2>
+              <h2>{sel ?? "—"}で学童を必要とする子と入れる子の推移</h2>
               {/* グラフ自身が「必要な数と、入れる数（人）」を出すので、ここでは範囲だけ言う */}
               <span className="pmeta">
                 {firstYear}〜{lastYear}年度
@@ -739,13 +835,15 @@ export default function App() {
 
             {note && (
               <div className="notice">
-                <span className="ic">{note.kind === 'real-shortage' ? '⚠' : 'ⓘ'}</span>
+                <span className="ic">
+                  {note.kind === "real-shortage" ? "⚠" : "ⓘ"}
+                </span>
                 <div>
-                  {note.kind === 'real-shortage'
+                  {note.kind === "real-shortage"
                     ? shortageLine(selMuni)
-                    : note.kind === 'series-break'
-                      ? '2023年と2025年で計上方法が変わっています。'
-                      : '対象児童数が少なく、比率が安定しません。'}
+                    : note.kind === "series-break"
+                      ? "2023年と2025年で計上方法が変わっています。"
+                      : "対象児童数が少なく、比率が安定しません。"}
                   <details className="more">
                     <summary>詳しく</summary>
                     <p>{note.text}</p>
@@ -754,7 +852,9 @@ export default function App() {
               </div>
             )}
 
-            {sel && <Series core={core} muni={sel} theme={theme} w={1280} h={340} />}
+            {sel && (
+              <Series core={core} muni={sel} theme={theme} w={1280} h={340} />
+            )}
 
             <p className="k" style={{ marginTop: 30, marginBottom: 4 }}>
               引っ越し先を変える以外に、打てる手。
@@ -771,23 +871,23 @@ export default function App() {
         <section id="heat">
           <div className="wide">
             <div className="secthd">
-              <h2>どの自治体が、いつから足りなくなるか。</h2>
+              <h2>どの自治体でいつから足りなくなるか</h2>
               <span className="pmeta">
-                {core.munis.length}自治体 × {core.years.length}年度 ＝{' '}
+                {core.munis.length}自治体 × {core.years.length}年度 ＝{" "}
                 {core.munis.length * core.years.length}セル
               </span>
             </div>
             {/* 🔴 表を地図と同じ全幅にする。読み方の注記は右柱ではなく表の下 */}
             <div className="grid">
-                <div />
-                {core.years.map((y) => (
-                  <div
-                    className={`gh${y === core.bridgeFrom ? ' br bridge-start' : ''}${y === viewYear ? ' now' : ''}`}
-                    key={y}
-                  >
-                    {String(y).slice(2)}
-                  </div>
-                ))}
+              <div />
+              {core.years.map((y) => (
+                <div
+                  className={`gh${y === core.bridgeFrom ? " br bridge-start" : ""}${y === viewYear ? " now" : ""}`}
+                  key={y}
+                >
+                  {String(y).slice(2)}
+                </div>
+              ))}
               {heatRows.map((m) => (
                 <Row
                   key={m}
@@ -810,12 +910,18 @@ export default function App() {
                 <i />
                 <span>
                   {core.bridgeFrom}年度から右は、全都の公式推計の伸びで接続した
-                  <strong>推定</strong>です（区市町村別の公式推計は{core.bridgeFrom - 1}年度まで。
+                  <strong>推定</strong>です（区市町村別の公式推計は
+                  {core.bridgeFrom - 1}年度まで。
                   この区間の誤差は実測していません）
                 </span>
               </p>
-              <button className="more-btn" onClick={() => setExpanded((v) => !v)}>
-                {expanded ? '上位10件に戻す' : `${core.munis.length}自治体すべて表示`}
+              <button
+                className="more-btn"
+                onClick={() => setExpanded((v) => !v)}
+              >
+                {expanded
+                  ? "上位10件に戻す"
+                  : `${core.munis.length}自治体すべて表示`}
               </button>
             </div>
           </div>
@@ -825,9 +931,10 @@ export default function App() {
         <section id="scenario">
           <div className="wide">
             <div className="secthd">
-              <h2>前提を変えると、どう変わるか。</h2>
+              <h2>前提を変えるとどう変わるか</h2>
               <span className="pmeta">
-                いまの仮定 <span className="eq tab">{pt(core.scenario.trend)}</span>／年
+                いまの仮定{" "}
+                <span className="eq tab">{pt(core.scenario.trend)}</span>／年
                 {offMeasured && (
                   <span className="offtag" style={{ marginLeft: 8 }}>
                     実測から外れた仮定
@@ -839,7 +946,7 @@ export default function App() {
               {PRESET_SCENARIOS.map((p) => (
                 <button
                   key={p.id}
-                  className={`preset${p.id === presetId ? ' on' : ''}`}
+                  className={`preset${p.id === presetId ? " on" : ""}`}
                   onClick={() => setPresetId(p.id)}
                 >
                   {p.label}
@@ -848,7 +955,9 @@ export default function App() {
             </div>
             <p className="preset-why">
               {preset.description}
-              {preset.id === 'latent' && <span className="assume">　※これは仮定です</span>}
+              {preset.id === "latent" && (
+                <span className="assume">　※これは仮定です</span>
+              )}
             </p>
 
             {/* 🔴 スライダーは主導線に置かない。
@@ -867,14 +976,14 @@ export default function App() {
                   step={0.0002}
                   value={trend}
                   aria-label="学童を使う子の割合の、年あたり上昇幅"
-                  disabled={presetId === 'trend15'}
+                  disabled={presetId === "trend15"}
                   onChange={(e) => setTrend(Number(e.target.value))}
                 />
                 <span className="eq tab">{pt(core.scenario.trend)}</span>
                 <button
                   className="zb"
                   onClick={() => setTrend(TREND.trend)}
-                  disabled={presetId === 'trend15'}
+                  disabled={presetId === "trend15"}
                 >
                   実測値 {pt(TREND.trend)} に戻す
                 </button>
@@ -895,42 +1004,46 @@ export default function App() {
 
         <section id="evidence">
           <div className="read">
-            <h2>この予測が、どれくらい当たるか。</h2>
+            <h2>この予測がどれくらい当たるか</h2>
             <div className="ev">
               {DATA.backtest.map((b) => (
                 <div key={b.horizon}>
                   <div className="n tab">
                     {b.maePct.toFixed(2)}
-                    <small style={{ fontSize: '.5em' }}>%</small>
+                    <small style={{ fontSize: ".5em" }}>%</small>
                   </div>
                   <div className="l">
-                    {b.horizon}年先の絶対誤差平均。都が出している推計を、あとから出た実数と
-                    {b.n}自治体で突き合わせた結果です（10〜90パーセンタイル {b.p10Pct.toFixed(2)}〜
-                    {b.p90Pct.toFixed(2)}%）
+                    {b.horizon}
+                    年先の絶対誤差平均。都が出している推計を、あとから出た実数と
+                    {b.n}自治体で突き合わせた結果です（10〜90パーセンタイル{" "}
+                    {b.p10Pct.toFixed(2)}〜{b.p90Pct.toFixed(2)}%）
                   </div>
                 </div>
               ))}
               <div>
                 <div className="n tab">
-                  {pt(TREND.trend).replace('pt', '')}
-                  <small style={{ fontSize: '.5em' }}>pt</small>
+                  {pt(TREND.trend).replace("pt", "")}
+                  <small style={{ fontSize: ".5em" }}>pt</small>
                 </div>
                 <div className="l">
                   学童を使う子の割合の、年あたり上昇。{TREND.n}自治体の実測（
-                  {(TREND.rateFrom * 100).toFixed(1)}% → {(TREND.rateTo * 100).toFixed(1)}%）
+                  {(TREND.rateFrom * 100).toFixed(1)}% →{" "}
+                  {(TREND.rateTo * 100).toFixed(1)}%）
                   {TREND.excluded.length > 0 &&
-                    `／${TREND.excluded.join('・')}は計上方法が変わったため除外`}
+                    `／${TREND.excluded.join("・")}は計上方法が変わったため除外`}
                 </div>
               </div>
             </div>
             <p className="lede">
               誤差を実測できるのは1年先と2年先だけです（都の推計が3世代しかないため）。
-              {core.bridgeFrom}年度以降は、都の公式推計どうしを接続した推定であることを、
+              {core.bridgeFrom}
+              年度以降は、都の公式推計どうしを接続した推定であることを、
               地図の「推定」表示とヒートマップのハッチで区別しています。
             </p>
             {/* 🔴 出典（＝どこから来たか）ではなく、作り方の信頼性の話なので #evidence に置く */}
             <p className="joinnote">
-              4種類のデータは、すべて <b>muni_code（全国地方公共団体コード5桁）</b>{' '}
+              4種類のデータは、すべて{" "}
+              <b>muni_code（全国地方公共団体コード5桁）</b>{" "}
               で結合しています。自治体名の表記ゆれ（「東京都府中市」と「府中市」など）を
               一度も踏んでいないのはこのためです。計算はすべてブラウザの中で走っていて、
               サーバーに送っているデータはありません。
@@ -943,7 +1056,7 @@ export default function App() {
                カタログ未掲載の資料・地図データを混ぜて「いずれも CC BY」と書かない（FR-8）。 */}
         <section id="sources">
           <div className="read">
-            <h2>出典とライセンス。</h2>
+            <h2>出典とライセンス</h2>
             <div className="src">
               {licenseGroups.map(([license, items]) => (
                 <div className="srcgrp" key={license}>
@@ -962,7 +1075,9 @@ export default function App() {
                   </ul>
                 </div>
               ))}
-              <p className="srcnote">本サービスは上記データを加工して作成しています。</p>
+              <p className="srcnote">
+                本サービスは上記データを加工して作成しています。
+              </p>
             </div>
           </div>
         </section>
@@ -989,18 +1104,18 @@ function Row({
   return (
     <>
       <div
-        className={`gn${muni === sel ? ' on' : ''}`}
+        className={`gn${muni === sel ? " on" : ""}`}
         role="button"
         tabIndex={0}
         onClick={() => onSelect(muni)}
-        onKeyDown={(e) => e.key === 'Enter' && onSelect(muni)}
+        onKeyDown={(e) => e.key === "Enter" && onSelect(muni)}
       >
         {muni}
       </div>
       {core.years.map((y) => {
         const c = cellAt(core, muni, y);
         const s = c && !c.excluded ? c.score : null;
-        const mark = `${y === core.bridgeFrom ? ' bridge-start' : ''}${y === viewYear ? ' now' : ''}`;
+        const mark = `${y === core.bridgeFrom ? " bridge-start" : ""}${y === viewYear ? " now" : ""}`;
         return s === null ? (
           <div
             className={`c${mark}`}
@@ -1010,9 +1125,12 @@ function Row({
           />
         ) : (
           <div
-            className={`c${c?.basis === 'bridged' ? ' br' : ''}${mark}`}
+            className={`c${c?.basis === "bridged" ? " br" : ""}${mark}`}
             key={y}
-            style={{ background: fillOf(s, palette), color: palette.ink[binOf(s)] }}
+            style={{
+              background: fillOf(s, palette),
+              color: palette.ink[binOf(s)],
+            }}
             title={`${muni} ${y}年度　入れない割合 ${Math.round(s)}%（${fmt(c?.detail.gap)}人）`}
           >
             {Math.round(s)}
