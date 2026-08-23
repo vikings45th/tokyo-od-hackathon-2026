@@ -124,6 +124,29 @@ export interface Backtest {
   n: number;
 }
 
+/**
+ * `Backtest[]` を計算するための入力（docs/19 依頼4）。
+ *
+ * 教育人口等推計は毎年出し直されるので、**古い版が出した推計を新しい版の実数と突き合わせれば、
+ * 実際に何%外れたかが分かります。** 各版の「N（実数）」列は推計ではなく実測値です。
+ *
+ *   horizon=1 … 令和6年度版が1年先（令和7年度）に出した推計 vs 令和7年度版の実数
+ *   horizon=2 … 令和5年度版が2年先（令和7年度）に出した推計 vs 令和7年度版の実数
+ *
+ * 出どころ：`data/raw/population/R{5,6,7}_result01.csv`
+ * （東京都教育庁「教育人口等推計」・カタログ掲載・CC BY 4.0。data/SOURCES.md #2〜4）
+ *
+ * 🔴 実測できるのは1年先と2年先だけです。推計ヴィンテージが令和5・6・7の3世代しかないため。
+ */
+export interface BacktestInput {
+  /** 答え合わせの対象年度（西暦）。実測：2025（令和7年度） */
+  targetYear: number;
+  /** 自治体名 → `targetYear` の実数（最新ヴィンテージの「N（実数）」列） */
+  actual: Record<string, number>;
+  /** 何年前の版が出した推計か → 自治体名 → `targetYear` に対する推計値 */
+  predicted: Array<{ horizon: 1 | 2; byMuni: Record<string, number> }>;
+}
+
 /** ①の出力一式。data/sample.json もこの形 */
 export interface AppData {
   munis: Muni[];

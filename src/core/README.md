@@ -143,6 +143,31 @@ validate.ts     ①のデータ受け入れ検査
 
 ---
 
+## 5-A. バックテストの再現（2026-08-23 追加・docs/19 依頼4）
+
+```ts
+import { computeBacktest } from './core';
+computeBacktest(input);   // → Backtest[]（horizon 1・2）
+```
+
+画面 S5 の「1年先 0.93% / 2年先 1.37%（49自治体）」は、**リポジトリの中だけで検算できます。**
+
+```
+src/core/backtest.ts                          計算（純関数）
+src/core/__tests__/fixtures/backtest-input.json   入力 3.8KB（49自治体 × 3ヴィンテージ）
+scripts/build_backtest.py                     前処理側の同じ計算（元CSVから直接）
+```
+
+`npm test` が **①の `data/app/data.json` の `backtest` と `toEqual` で一致すること**まで確かめます。
+🔴 **一致しなくなったら、直すのは画面の数字の方です。逆はやらないこと。**
+
+> **①へ**：この入力を `data/processed/` 側で持ちたい場合、`scripts/build_backtest.py` の
+> `build_backtest()` の中で作っている `r5 / r6 / r7` から
+> `{ targetYear: 2025, actual: r7, predicted: [{horizon:1, byMuni:r6}, {horizon:2, byMuni:r5}] }`
+> を dump するだけです（`BacktestInput` 型・`src/types.ts`）。移したら fixture は消します。
+
+---
+
 ## 5-B. 🔴 自治体別トレンド（2026-08-23 追加・docs/19 依頼3）
 
 ```ts
@@ -191,7 +216,7 @@ t.points        // 使えた時点数の中央値。🔴 いまは 2
 | | 状態 | 影響 |
 |---|---|---|
 | **学校別コーホート＋raking**（設計書 §5-1） | **未実装** | **スコアもヒートマップも数字は変わりません。** スコアに必要な自治体別児童数は `Muni.official` に既にあり、raking の出力は定義上その公式値と一致するため。DoD#1・#2 と「都の推計をブラウザで再実行」という技術力の見せ場だけが未達。`forecast.ts` の `projectMuni` を差し替えれば入ります |
-| `backtest.ts`（誤差の再計算） | **未実装（TS版）** | ⚠️ **再現コード自体は `scripts/build_backtest.py` に存在します。** 動かないのは入力 `data/raw/population/R{5,6,7}_result01.csv` が `.gitignore` されているだけ（カタログ掲載・CC BY 4.0 なのでコミット可）。TS版は①が `data/app/backtestInput.json` を出したら入ります |
+| ~~`backtest.ts`~~ | ✅ **実装済み**（2026-08-23） | `computeBacktest(input)` が 0.93% / 1.37% を再現し、`data/app/data.json` の `backtest` と一致することを `npm test` が assert します。DoD#3 達成 |
 | `src/api/` | **作りません** | FR-7 を作らないため |
 
 ---
@@ -199,7 +224,7 @@ t.points        // 使えた時点数の中央値。🔴 いまは 2
 ## 7. 開発コマンド
 
 ```bash
-npm test          # vitest。62件
+npm test          # vitest。66件
 npm run typecheck # tsc --noEmit
 npm run dev       # vite
 npm run build     # NFR-4：ネットに触れない

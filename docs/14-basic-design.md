@@ -515,6 +515,17 @@ horizon=2（令和5年度版が2年先に出した推計 vs 令和7年度実数�
 > （旧: 平均+0.26%・絶対誤差平均1.51%・57地区の暫定値から差し替え）。
 > 傾向・オーダーは変わらないが、`src/core` が予測区間を実装する際は
 > `data/app/data.json` の `backtest` を都度読むこと（この節の数値を再ハードコードしない）。
+>
+> ✅ **2026-08-23：`npm test` で検算できるようにした（docs/19 依頼4・DoD#3）。**
+> `src/core/backtest.ts` の `computeBacktest(input)` が同じ計算を TypeScript で行い、
+> `src/core/__tests__/fixtures/backtest-input.json`（3.8KB・49自治体×3ヴィンテージの
+> 令和7年度値だけを抜いたもの）から **0.93% / 1.37% を再現**する。
+> さらに `data/app/data.json` の `backtest` と `toEqual` で一致することも assert している。
+> **画面の一番目立つ数字が、リポジトリの中だけで検算できる状態**になった。
+>
+> ⚠️ 元CSV `data/raw/population/R{5,6,7}_result01.csv` は**カタログ掲載・CC BY 4.0 なので
+> コミット可能**だが、`.gitignore` の `data/raw/` に入っている（`scripts/fetch_population.py`
+> で誰でも取り直せる）。コミットするかは①の判断。
 
 ---
 

@@ -21,5 +21,8 @@ export { childrenSeriesOf, rLatentSeriesOf, type ChildrenSource, type RatePoint 
 // ── 再計算を避けたいとき（ヒートマップと詳細を同時に描くなど） ──
 export { computeAll, type CoreResult, type CoreCell } from './compute';
 
+// ── バックテスト（DoD#3：画面の誤差の数字を検算できるようにする） ──
+export { computeBacktest, errorPct } from './backtest';
+
 // ── 軸の追加（要件 FR-9） ──
 export { INDICATORS } from './indicators';

@@ -1,11 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import { appData, scoreAt } from './fixtures';
+import backtestInput from './fixtures/backtest-input.json';
 import {
   birthYearOf,
   buildHeatmap,
   buildMuniDetail,
   computeAll,
+  computeBacktest,
   entryYearOf,
+  errorPct,
   isEarlyBirth,
   DEFAULT_TREND,
   latentFloorFromData,
@@ -531,5 +534,49 @@ describe('依頼8 定数と実測値が食い違っていないか', () => {
   it('DEFAULT_TREND は実データの実測値と一致する（0.01pt 以内）', async () => {
     const real = (await import('../../../data/app/data.json')).default as unknown as Parameters<typeof measureTrend>[0];
     expect(Math.abs(measureTrend(real).trend - DEFAULT_TREND)).toBeLessThan(0.0001);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────
+// docs/19 依頼4：画面 S5 の誤差の数字を、リポジトリの中で検算できるようにする
+// ─────────────────────────────────────────────────────────────
+
+describe('依頼4 バックテストの再現', () => {
+  // data/raw/population/R{5,6,7}_result01.csv（カタログ掲載・CC BY 4.0）から
+  // 49自治体 × 3ヴィンテージの令和7年度値だけを抜き出したもの（3.8KB）
+  const input = backtestInput as unknown as Parameters<typeof computeBacktest>[0];
+
+  it('画面に出ている誤差が、元データから再現できる', () => {
+    const b = computeBacktest(input);
+    expect(b.map((x) => x.horizon)).toEqual([1, 2]);
+
+    const h1 = b.find((x) => x.horizon === 1)!;
+    const h2 = b.find((x) => x.horizon === 2)!;
+    expect(h1.n).toBe(49);
+    expect(h2.n).toBe(49);
+    // 🔴 1.51 / 57地区 は①の再計算前の値。実測は 1.37 / 49自治体（docs/14 §5-3）
+    expect(h1.maePct).toBeCloseTo(0.93, 2);
+    expect(h2.maePct).toBeCloseTo(1.37, 2);
+  });
+
+  it('①が data/app/data.json に入れている backtest と一致する', async () => {
+    const real = (await import('../../../data/app/data.json')).default as unknown as { backtest: unknown[] };
+    expect(computeBacktest(input)).toEqual(real.backtest);
+  });
+
+  it('誤差の分母は実数ではなく推計（帯を推計に掛けて使うため）', () => {
+    // 推計 100 に対して実数 110 なら +10%。実数を分母にすると +9.09% になってしまう
+    expect(errorPct(110, 100)).toBeCloseTo(10, 9);
+  });
+
+  it('実数の無い自治体は黙って落とし、n に数えない', () => {
+    const partial = {
+      targetYear: 2025,
+      actual: { A: 110 },
+      predicted: [{ horizon: 1 as const, byMuni: { A: 100, B: 100 } }],
+    };
+    const [b] = computeBacktest(partial);
+    expect(b!.n).toBe(1);
+    expect(b!.meanPct).toBeCloseTo(10, 9);
   });
 });

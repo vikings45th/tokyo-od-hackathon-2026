@@ -67,9 +67,8 @@
 - [x] ②：**依頼3 自治体別トレンド（OLS＋縮約推定＋信頼区間）と予測区間への反映** ✅
       🔴 **ただし今日のデータでは49自治体すべてフォールバックします。**
       学童 2024-05 の1点が入るまで自治体別の傾きは引けません（下の①の依頼）
-- [ ] ②：**依頼4 `src/core/backtest.ts` — 誤差分布を入力から計算＋テスト**
-      ⚠️ 再現コード自体は `scripts/build_backtest.py` に**既に存在します**。
-      動かないのは入力 `data/raw/population/*_result01.csv` が `.gitignore` されているだけ
+- [x] ②：**依頼4 `src/core/backtest.ts`** ✅ `computeBacktest()` が 0.93% / 1.37% を再現し、
+      `data/app/data.json` の `backtest` と一致することを `npm test` が assert（DoD#3 達成）
 - [x] ②：依頼5 `supply` の JSDoc（登録実績であって定員ではない）✅
 - [x] ②：依頼6 main の赤いテスト3件 ✅／依頼7 プリセット文言 ✅／依頼8 `DEFAULT_TREND` 0.0084→0.0081 ✅
 - [x] ①：**依頼1 `data/app/data.json` を49自治体ぶん** ✅（`npm run validate` で緑）
@@ -138,8 +137,7 @@
       （$100上限とライセンス発行待ちに作品を依存させないため。`docs/05-tech.md`）
 - [x] **③からの変更依頼3件** ✅ すべて対応済み（`abcdae0`）
 - [x] ~~**出荷オーナー**：デプロイと公開URL~~ → **①へ移管**（`docs/18-request-to-data.md` 依頼6）
-- [x] 🔴 **`docs/19-request-to-logic.md` の依頼8件**：1・2・3・5・6・7・8 は対応済み ✅
-- [ ] 依頼4（`src/core/backtest.ts`）だけ残り。①の `data/raw/population/*.csv` 待ち
+- [x] 🔴 **`docs/19-request-to-logic.md` の依頼8件すべて対応済み** ✅（テスト 45 → 66件）
 
 #### ③ UI担当
 
