@@ -123,8 +123,17 @@ function unknownTrend(core: CoreResult): MuniTrend {
  *
  * ③のスライダーで `trend` を明示されたときは、**帯の幅は実測のまま、中心だけスライダー値へ移す。**
  * 「どれだけ知らないか」はデータの性質で、シナリオを変えても変わらないため。
+ *
+ * ## ③へ
+ *
+ * `CoreResult` から直接描くとき（`src/ui/Series.tsx` のように `MuniDetail` を経由しないとき）は
+ * これを呼んでください。**`band.lo * rTarget` を自前で計算するとトレンドの不確かさが落ちます。**
+ *
+ * ```ts
+ * const { demandBand, gapBand } = bandsFor(cell, core);
+ * ```
  */
-function bandsFor(
+export function bandsFor(
   r: CoreCell,
   core: CoreResult,
 ): { demandBand: { lo: number; hi: number }; gapBand: { lo: number; hi: number } } {
