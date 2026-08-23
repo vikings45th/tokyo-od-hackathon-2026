@@ -94,7 +94,7 @@ export function validateAppData(input: unknown): ValidationReport {
   // schools の muni が munis に居るか（結合キーの確認）
   if (isArray(d.schools)) {
     const orphan = new Set<string>();
-    for (const s of d.schools as AppData['schools']) {
+    for (const s of d.schools as NonNullable<AppData['schools']>) {
       if (s?.muni && !names.has(s.muni)) orphan.add(s.muni);
     }
     if (orphan.size) warnings.push(`schools.muni が munis に無い: ${[...orphan].join(', ')}`);

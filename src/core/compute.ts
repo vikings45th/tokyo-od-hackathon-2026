@@ -4,7 +4,7 @@
  * ③が出力の形を変えたくなったら、直すのは heatmap.ts / muniDetail.ts だけでよい。
  * 予測・スコアのロジックには触らせない。
  */
-import type { AppData, Basis, Muni, Note, Projection, Scenario } from '../types';
+import type { AppData, Basis, Muni, MuniTrend, Note, Projection, Scenario } from '../types';
 import { entryYearRange } from './entryYear';
 import { buildForecastContext, projectMuni, type ForecastContext } from './forecast';
 import { INDICATORS } from './indicators';
@@ -26,6 +26,8 @@ export interface CoreCell {
   indicators: WeightedResult[];
   /** 軸1の detail をそのまま（画面の詳細表示用） */
   detail: Record<string, number>;
+  /** この自治体に当てた登録率トレンド。予測区間と注記に使う（docs/19 依頼3） */
+  trend: MuniTrend;
 }
 
 export interface CoreResult {
@@ -46,10 +48,27 @@ export interface CoreResult {
   forecast: ForecastContext;
 }
 
-/** Scenario をプラグインに渡せる形に戻す（クランプ済みの値で） */
-function toPluginScenario(s: NormalizedScenario): Required<Pick<Scenario, 'trend'>> & Scenario {
+/** byMuni に居ない自治体（データ不整合）用の保険。都の実測値をそのまま当てる */
+function fallbackTrendOf(t: TrendMeasurement): MuniTrend {
   return {
-    trend: s.trend,
+    slope: null,
+    nPoints: 0,
+    se: null,
+    used: t.trend,
+    ciLo: Math.min(t.slopeP10, t.trend),
+    ciHi: Math.max(t.slopeP90, t.trend),
+    fallback: true,
+    denominator: 'official',
+  };
+}
+
+/**
+ * Scenario をプラグインに渡せる形に戻す（クランプ済みの値で）。
+ * `trend` だけは自治体ごとに差し替わるので引数で受ける（docs/19 依頼3-2）。
+ */
+function toPluginScenario(s: NormalizedScenario, trend: number): Required<Pick<Scenario, 'trend'>> & Scenario {
+  return {
+    trend,
     latentFloor: s.latentFloor,
     supplyGrowth: [...s.supplyGrowth].map(([year, factor]) => ({ year, factor })),
     housing: [...s.housing],
@@ -62,7 +81,10 @@ function toPluginScenario(s: NormalizedScenario): Required<Pick<Scenario, 'trend
  */
 export function computeAll(data: AppData, scenario?: Scenario): CoreResult {
   const norm = normalizeScenario(scenario);
-  const pluginScenario = toPluginScenario(norm);
+  const trend = measureTrend(data);
+  // 🔴 trend を明示されていないときは、画面に出す「実際に使った値」も実測値に揃える。
+  //    定数 DEFAULT_TREND を表示しつつ実測値で計算する、という食い違いを作らない（docs/19 依頼7・8）
+  if (!norm.trendExplicit) norm.trend = trend.trend;
   const forecast = buildForecastContext(data);
   const noteCtx = buildNoteContext(data);
   const years = entryYearRange(data);
@@ -88,6 +110,15 @@ export function computeAll(data: AppData, scenario?: Scenario): CoreResult {
       included.push(muni);
     }
 
+    /**
+     * 🔴 この自治体に当てる傾き。
+     *   - シナリオで `trend` を明示されたら（③のスライダー）その値を一律で使う
+     *   - 未指定なら自治体別の実測値。引けない自治体は都の実測値へフォールバックし
+     *     `muniTrend.fallback` が立つ（画面に「都平均を当てている」と出すため）
+     */
+    const muniTrend = trend.byMuni.get(muni.name) ?? fallbackTrendOf(trend);
+    const pluginScenario = toPluginScenario(norm, norm.trendExplicit ? norm.trend : muniTrend.used);
+
     const rows: CoreCell[] = [];
     for (const year of years) {
       const projection = projectMuni(muni, year, forecast, norm, data.backtest);
@@ -105,6 +136,7 @@ export function computeAll(data: AppData, scenario?: Scenario): CoreResult {
         projection,
         indicators: results,
         detail: results[0]?.result?.detail ?? {},
+        trend: muniTrend,
       });
     }
     byMuni.set(muni.name, rows);
@@ -120,7 +152,7 @@ export function computeAll(data: AppData, scenario?: Scenario): CoreResult {
     byMuni,
     notes,
     excludedMunis,
-    trend: measureTrend(data),
+    trend,
     forecast,
   };
 }
